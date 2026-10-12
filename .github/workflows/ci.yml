@@ -23,7 +23,25 @@ jobs:
         run: pip install -e ".[dev]"
       - name: Ruff
         run: ruff check .
-      - name: App requirements mirror is in sync
-        run: cmp requirements-app.txt app/requirements.txt
       - name: Pytest (mock backbone, no weight downloads)
         run: pytest
+
+  app-deps:
+    # Streamlit Community Cloud installs app/requirements.txt with uv on Linux x86_64:
+    # resolve it the same way (CPU-only torch wheels) without downloading model weights.
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Resolve app/requirements.txt for Linux x86_64
+        run: |
+          uv pip compile app/requirements.txt --python-version ${{ matrix.python-version }} \
+            --python-platform x86_64-manylinux_2_28 -o /tmp/app-lock.txt
+          grep -E '^torch @ .*%2Bcpu' /tmp/app-lock.txt
+          ! grep -iE '^nvidia|^triton' /tmp/app-lock.txt
+      - name: Redirect file resolves to the same set
+        run: uv pip compile requirements-app.txt --python-version ${{ matrix.python-version }} --python-platform x86_64-manylinux_2_28 -o /tmp/redirect-lock.txt

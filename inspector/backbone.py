@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import functools
 import logging
+import math
+import os
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Protocol
@@ -46,6 +48,28 @@ class PatchModel(Protocol):
     def eval(self) -> PatchModel: ...
 
 
+def available_cpus(cgroup_root: str | Path = "/sys/fs/cgroup") -> int:
+    """CPUs this process may actually use: affinity mask capped by a cgroup CPU quota (v2 ``cpu.max`` or
+    v1 ``cpu.cfs_quota_us``). Containers such as Streamlit Community Cloud often expose all host cores
+    to ``os.cpu_count()`` but throttle to a 2-core quota; sizing torch's thread pool to the quota avoids
+    oversubscription."""
+    n = len(os.sched_getaffinity(0)) if hasattr(os, "sched_getaffinity") else (os.cpu_count() or 1)
+    root = Path(cgroup_root)
+    quota: float | None = None
+    try:
+        v2 = root / "cpu.max"
+        if v2.is_file():
+            q, period = v2.read_text().split()[:2]
+            quota = None if q == "max" else int(q) / int(period)
+        elif (root / "cpu" / "cpu.cfs_quota_us").is_file():
+            q = int((root / "cpu" / "cpu.cfs_quota_us").read_text())
+            period = int((root / "cpu" / "cpu.cfs_period_us").read_text())
+            quota = None if q <= 0 else q / period
+    except (OSError, ValueError):
+        quota = None
+    return max(1, min(n, math.ceil(quota))) if quota else max(1, n)
+
+
 def select_device(preference: str = "auto") -> torch.device:
     """Return ``preference`` as a device, or auto-select cuda → mps → cpu."""
     if preference != "auto":
@@ -69,7 +93,7 @@ def synchronize(device: torch.device) -> None:
 def _load_hub_model(model_name: str, device_str: str) -> torch.nn.Module:
     LOG.info("loading %s via torch.hub on %s", model_name, device_str)
     try:
-        model = torch.hub.load("facebookresearch/dinov2", model_name, verbose=False)
+        model = torch.hub.load("facebookresearch/dinov2", model_name, verbose=False, trust_repo=True)
     except Exception as exc:  # network / cache / hub failures all surface here
         raise BackboneLoadError(
             f"could not load DINOv2 '{model_name}' via torch.hub "

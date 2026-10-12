@@ -209,3 +209,19 @@ def test_config_validation():
     with pytest.raises(ValueError):
         InspectorConfig(top_pct=0)
     assert InspectorConfig().rotation_angles[1] == 45.0
+
+
+# --------------------------------------------------------------------------- CPU quota detection
+def test_available_cpus_respects_cgroup_quota(tmp_path: Path):
+    from inspector.backbone import available_cpus
+
+    unlimited = available_cpus(tmp_path / "none")
+    (tmp_path / "v2").mkdir()
+    (tmp_path / "v2" / "cpu.max").write_text("200000 100000\n")
+    assert available_cpus(tmp_path / "v2") == min(2, unlimited)
+    (tmp_path / "v2" / "cpu.max").write_text("max 100000\n")
+    assert available_cpus(tmp_path / "v2") == unlimited
+    (tmp_path / "v1" / "cpu").mkdir(parents=True)
+    (tmp_path / "v1" / "cpu" / "cpu.cfs_quota_us").write_text("150000\n")
+    (tmp_path / "v1" / "cpu" / "cpu.cfs_period_us").write_text("100000\n")
+    assert available_cpus(tmp_path / "v1") == min(2, unlimited)  # 1.5 cores -> 2 threads
