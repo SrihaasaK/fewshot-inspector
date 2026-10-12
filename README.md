@@ -400,4 +400,7 @@ results/     benchmark / latency / calibration CSVs, charts, run metadata (git S
   © MVTec Software GmbH, [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)
   (non-commercial). The dataset is **not** included in this repository; the example and failure-case images
   under `docs/` and `results/` are derived from it and remain under CC BY-NC-SA 4.0.
-- Code: MIT (see [LICENSE](LICENSE)).
+- Code: MIT (see [LICENSE](LICENSE)), except the adapted portions listed in
+  [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md): AUPRO/trapezoid code adapted from AnomalyDINO
+  (Apache-2.0) and the MVTec AD evaluation code (BSD-3-Clause), and reference-function test oracles copied
+  from AnomalyDINO. Licence texts are in [`LICENSES/`](LICENSES).

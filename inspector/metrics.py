@@ -48,6 +48,13 @@ def pixel_auroc(scores: torch.Tensor | np.ndarray, labels: torch.Tensor | np.nda
     return twice_u / (2.0 * n_pos * n_neg)
 
 
+# ---------------------------------------------------------------------------------------------------
+# `_trapezoid` and `aupro` are adapted from AnomalyDINO `src/post_eval.py` (Apache-2.0,
+# LICENSES/Apache-2.0-AnomalyDINO.txt), which builds on the MVTec AD evaluation code
+# (`generic_util.trapezoid`, `pro_curve_util.compute_pro`; Copyright 2022 MVTec Software GmbH,
+# BSD-3-Clause, LICENSES/BSD-3-Clause-MVTec-AD-evaluation.txt). Modified: merged into one vectorised
+# function, renamed variables, removed I/O and printing. See THIRD_PARTY_NOTICES.md.
+# ---------------------------------------------------------------------------------------------------
 def _trapezoid(x: np.ndarray, y: np.ndarray, x_max: float) -> float:
     """Area under (x, y) up to ``x_max`` (MVTec official evaluation code)."""
     correction = 0.0

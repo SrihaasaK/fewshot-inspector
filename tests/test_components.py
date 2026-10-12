@@ -21,6 +21,9 @@ from inspector.metrics import aupro, cutoff_metrics, pixel_auroc
 
 
 # --------------------------------------------------------------------------- reference copies
+# The `ref_*` oracles below are copied with minimal edits from AnomalyDINO (src/post_eval.py, src/utils.py,
+# src/backbones.py; Copyright the AnomalyDINO authors, Apache-2.0 — LICENSES/Apache-2.0-AnomalyDINO.txt).
+# Changes: stand-alone functions, type hints, svd_solver='full' for determinism. See THIRD_PARTY_NOTICES.md.
 def ref_mean_top1p(distances: np.ndarray) -> float:  # AnomalyDINO src/post_eval.py:293-297
     if int(len(distances) * 0.01) == 0:
         return float(np.max(distances))
