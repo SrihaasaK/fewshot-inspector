@@ -119,7 +119,8 @@ def e2e(args: argparse.Namespace) -> None:
         captions = [c.value for c in at.caption]
         clicks.append({"category": cat, "seconds_click_to_verdicts": seconds, "status": status,
                        "n_pass": len(at.success), "n_fail": len(at.error),
-                       "n_images": len(at.get("imgs")),
+                       "n_images": len(at.get("image")),
+                       "n_heatmap_images": sum("heatmap" in str(getattr(i, "caption", "")) for i in at.get("image")),
                        "correct_caption": next((c for c in captions if c.startswith("Verdicts matching")), ""),
                        "ground_truth_captions": [c for c in captions if c.startswith("Ground truth")]})
         LOG.info("%s: click -> %d verdicts in %.1fs | %s | %s", cat, len(at.success) + len(at.error), seconds,
