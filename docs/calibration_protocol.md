@@ -83,6 +83,18 @@ The `good_only` margin 0.10 is a conventional 10 % guard band chosen before seei
 - **Gate**: `synth_youden` and `synth_escape5` beat `good_only` on macro balanced accuracy for every
   k ≥ 2. If not, the result is reported as-is with analysis.
 
+## Amendment 1 (2026-10-12 15:30 local, during the full run) — choosing *one* deployable policy
+
+Naming a single "best" synthetic policy by its MVTec test performance would select on test labels. Rule:
+among `synth_youden` and `synth_escape5`, the **selected policy** is the one with the higher macro balanced
+accuracy at k = 4 on the **3 dev categories `bottle`, `cable`, `capsule`** (the first three in MVTec order —
+a mechanical choice). It is reported on the **12 held-out categories** (and, separately, on all 15), and it
+becomes the demo app's default policy. All policies are still reported in full.
+
+Disclosure: when this rule was written, the run had logged bottle k ∈ {1, 2, 4} (some seeds), and a headless
+app smoke test on bottle had been run; no other category's calibration result had been seen. No protocol
+parameter was changed.
+
 ## Known biases (reported in the README)
 
 - **LOO bias**: calibration banks have k − 1 references, the deployed bank has k ⇒ real good scores
