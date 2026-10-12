@@ -60,6 +60,8 @@ def main() -> None:
     device = select_device(args.device)
     base = InspectorConfig(resolution=args.resolution, device=str(device))
     backbone = Backbone(base.model_name, device)
+    meta = run_metadata(device, base.to_dict(), script="calibrate_eval", args=vars(args),
+                        protocol="docs/calibration_protocol.md")  # provenance captured at launch
     rows: list[dict[str, object]] = []
     synth_rows: list[dict[str, object]] = []
     example_rows: list[list[np.ndarray]] = []
@@ -119,8 +121,7 @@ def main() -> None:
         titles = [[f[1] for f in flat[i:i + 8]] for i in range(0, len(flat), 8)]
         save_grid(grid, titles, out_dir / "synth_examples.png",
                   suptitle="Synthetic defects used for calibration (MVTec AD images, CC BY-NC-SA 4.0)", cell=2.2)
-    meta = run_metadata(device, base.to_dict(), script="calibrate_eval", args=vars(args),
-                        protocol="docs/calibration_protocol.md", total_s=time.perf_counter() - t_start)
+    meta["total_s"] = time.perf_counter() - t_start
     (out_dir / "run_meta_calibration.json").write_text(json.dumps(meta, indent=2, default=str))
     LOG.info("wrote %s (%d rows) in %.1f min", out_dir / "calibration.csv", len(rows),
              (time.perf_counter() - t_start) / 60)

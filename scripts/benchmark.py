@@ -226,6 +226,8 @@ def main() -> None:
     (out_dir / "raw").mkdir(parents=True, exist_ok=True)
     t_start = time.perf_counter()
     timings: dict[str, float] = {}
+    meta = run_metadata(device, base.to_dict(), script="benchmark", args=vars(args),  # at launch
+                        pixel_eval_resolution="original image resolution (700-1024 px), all pixels pooled per category")
 
     if not args.latency_only:
         rows: list[dict[str, object]] = []
@@ -242,9 +244,7 @@ def main() -> None:
         pd.DataFrame(run_latency(args, base, backbone)).to_csv(out_dir / "latency.csv", index=False)
         timings["latency"] = time.perf_counter() - t0
 
-    meta = run_metadata(device, base.to_dict(), script="benchmark", args=vars(args),
-                        pixel_eval_resolution="original image resolution (700-1024 px), all pixels pooled per category",
-                        timings_s=timings, total_s=time.perf_counter() - t_start)
+    meta.update(timings_s=timings, total_s=time.perf_counter() - t_start)
     meta_path = out_dir / ("run_meta_latency.json" if args.latency_only else "run_meta.json")
     meta_path.write_text(json.dumps(meta, indent=2, default=str))
     LOG.info("done in %.1f min -> %s", (time.perf_counter() - t_start) / 60, meta_path)

@@ -1,0 +1,79 @@
+{
+  "timestamp_utc": "2026-10-12T20:23:04Z",
+  "git_sha": "14c01773938965a5c71a653fff563c304bae10f6-dirty",
+  "device": "mps",
+  "device_name": "Apple M4 Pro (MPS)",
+  "torch_version": "2.14.1",
+  "python_version": "3.12.14",
+  "platform": "macOS-27.0.1-arm64-arm-64bit",
+  "config": {
+    "model_name": "dinov2_vits14",
+    "resolution": 672,
+    "masking": "auto",
+    "category": null,
+    "rotate_references": true,
+    "rotation_angles": [
+      0.0,
+      45.0,
+      90.0,
+      135.0,
+      180.0,
+      225.0,
+      270.0,
+      315.0
+    ],
+    "mask_references": false,
+    "mask_threshold": 10.0,
+    "mask_border": 0.2,
+    "mask_min_center_fraction": 0.35,
+    "mask_kernel": 3,
+    "mask_morphology": "flat",
+    "top_pct": 0.01,
+    "sigma": 4.0,
+    "device": "mps",
+    "knn_dtype": "auto",
+    "knn_backend": "torch",
+    "batch_size": 8
+  },
+  "script": "calibrate_eval",
+  "args": {
+    "data_root": "data/mvtec_ad",
+    "categories": [
+      "bottle",
+      "cable",
+      "capsule",
+      "carpet",
+      "grid",
+      "hazelnut",
+      "leather",
+      "metal_nut",
+      "pill",
+      "screw",
+      "tile",
+      "toothbrush",
+      "transistor",
+      "wood",
+      "zipper"
+    ],
+    "shots": [
+      1,
+      2,
+      4,
+      8,
+      16
+    ],
+    "seeds": [
+      0,
+      1,
+      2
+    ],
+    "resolution": 672,
+    "sampling": "contiguous",
+    "n_total": 64,
+    "scores": null,
+    "device": "auto",
+    "out_dir": "results"
+  },
+  "protocol": "docs/calibration_protocol.md",
+  "total_s": 3473.575875958006
+}

@@ -165,13 +165,38 @@ POLICY_LABEL = {"good_only": "good_only (p99 × 1.10)", "good_only_m0": "good_on
 SYNTH_POLICIES = ("synth_youden", "synth_escape5")
 
 
-def calibration_macro(cal: pd.DataFrame) -> pd.DataFrame:
+DEV_CATEGORIES = ("bottle", "cable", "capsule")  # protocol amendment 1: first three in MVTec order
+
+
+def calibration_macro(cal: pd.DataFrame, categories: list[str] | None = None) -> pd.DataFrame:
     """Per (k, policy): macro over categories per seed, then mean/std over seeds (percent)."""
+    if categories is not None:
+        cal = cal[cal.category.isin(categories)]
     per_seed = cal.groupby(["k", "policy", "seed"])[["frr", "escape", "balanced_accuracy"]].mean().reset_index()
     g = per_seed.groupby(["k", "policy"])
     out = g[["frr", "escape", "balanced_accuracy"]].mean().mul(100)
     std = g[["frr", "escape", "balanced_accuracy"]].std(ddof=0).mul(100).add_suffix("_std")
-    return pd.concat([out, std], axis=1).reset_index()
+    n_cat = cal.groupby(["k", "policy"]).category.nunique().rename("n_categories")
+    return pd.concat([out, std, n_cat], axis=1).reset_index()
+
+
+def _label_points(ax: object, pts: pd.DataFrame, min_gap: float = 7.0, x_cluster: float = 25.0) -> None:
+    """Non-overlapping labels: cluster points by FRR, push labels upward within a cluster, add leader lines."""
+    pts = pts.sort_values("frr")
+    clusters: list[list[pd.Series]] = []
+    for _, r in pts.iterrows():
+        if clusters and r.frr - clusters[-1][-1].frr < x_cluster:
+            clusters[-1].append(r)
+        else:
+            clusters.append([r])
+    for cluster in clusters:
+        prev = -np.inf
+        for r in sorted(cluster, key=lambda q: q.escape):
+            y = max(float(r.escape), prev + min_gap)
+            prev = y
+            ax.annotate(PRETTY.get(r.category, r.category), xy=(r.frr, r.escape), xytext=(r.frr + 9, y),
+                        textcoords="data", fontsize=6.5, color=INK_2, va="center", annotation_clip=False,
+                        arrowprops={"arrowstyle": "-", "color": MUTED, "lw": 0.5, "shrinkA": 0, "shrinkB": 3})
 
 
 def calibration_scatter(cal: pd.DataFrame, k: int, path: Path) -> None:
@@ -190,9 +215,7 @@ def calibration_scatter(cal: pd.DataFrame, k: int, path: Path) -> None:
         ax.plot([0, 100], [100, 0], color=GRID, lw=1, ls=":")  # BA = 50 % line
         ax.scatter(dp.frr, dp.escape, s=40, color=SERIES_1 if p != "oracle" else PAPER,
                    edgecolor=SURFACE, linewidth=1.5, zorder=3)
-        for _, r in dp[(dp.frr > 30) | (dp.escape > 30)].iterrows():
-            ax.annotate(PRETTY.get(r.category, r.category), (r.frr, r.escape), fontsize=6.5, color=INK_2,
-                        xytext=(3, 3), textcoords="offset points")
+        _label_points(ax, dp[(dp.frr > 30) | (dp.escape > 30)])
         ax.set_title(POLICY_LABEL[p], fontsize=9, color=INK, loc="left")
         ax.set_xlim(-3, 103)
         ax.set_ylim(-3, 103)
@@ -235,29 +258,59 @@ def calibration_section(results: Path) -> str:
     gate_ok = all(d > 0 for _, _, d in gate_rows)
     gate_txt = ", ".join(f"k={k} {p} {d:+.1f}" for k, p, d in gate_rows)
 
-    # headline at k = 4
-    head = ""
-    if 4 in ks:
-        m4 = mac[mac.k == 4].set_index("policy")
-        best = max(SYNTH_POLICIES, key=lambda p: m4.loc[p, "balanced_accuracy"])
-        b, g, o = m4.loc[best], m4.loc["good_only"], m4.loc["oracle"]
-        head = (f"**With only 4 good reference photos and zero real defect images, the `{best}` cutoff gives a "
-                f"macro false-reject rate of {b.frr:.1f} % and escape rate of {b.escape:.1f} % on the real MVTec "
-                f"test sets (balanced accuracy {b.balanced_accuracy:.1f} % vs {g.balanced_accuracy:.1f} % for the "
-                f"defect-free `good_only` baseline and {o.balanced_accuracy:.1f} % for the non-deployable oracle).**")
+    # amendment 1: select one synthetic policy on the dev categories at k = 4, report on held-out ones
+    cats = sorted(cal.category.unique())
+    held = [c for c in cats if c not in DEV_CATEGORIES]
+    dev_mac, held_mac = calibration_macro(cal, list(DEV_CATEGORIES)), calibration_macro(cal, held)
+    k_sel = 4 if 4 in ks else ks[-1]
+    d4 = dev_mac[dev_mac.k == k_sel].set_index("policy")
+    selected = max(SYNTH_POLICIES, key=lambda p: d4.loc[p, "balanced_accuracy"])
+    summary = pd.concat([mac.assign(subset="all"), dev_mac.assign(subset="dev"), held_mac.assign(subset="heldout")])
+    summary.to_csv(results / "summary_calibration.csv", index=False)
+
+    h4 = held_mac[held_mac.k == k_sel].set_index("policy")
+    a4 = mac[mac.k == k_sel].set_index("policy")
+    b, g, o = h4.loc[selected], h4.loc["good_only"], h4.loc["oracle"]
+    head = (f"**With only {k_sel} good reference photos and zero real defect images, the selected `{selected}` cutoff "
+            f"gives a macro false-reject rate of {b.frr:.1f} % and an escape rate of {b.escape:.1f} % on the real "
+            f"test sets of the {len(held)} held-out MVTec categories (balanced accuracy {b.balanced_accuracy:.1f} % "
+            f"vs {g.balanced_accuracy:.1f} % for the defect-free `good_only` baseline and {o.balanced_accuracy:.1f} % "
+            f"for the non-deployable oracle).** On all 15 categories: FRR {a4.loc[selected, 'frr']:.1f} %, escape "
+            f"{a4.loc[selected, 'escape']:.1f} %, balanced accuracy {a4.loc[selected, 'balanced_accuracy']:.1f} %.")
+    sel_txt = (f"Policy selection (protocol amendment 1): on the dev categories {', '.join(DEV_CATEGORIES)} at "
+               f"k = {k_sel}, macro balanced accuracy was "
+               + ", ".join(f"`{p}` {d4.loc[p, 'balanced_accuracy']:.1f} %" for p in SYNTH_POLICIES)
+               + f" ⇒ **`{selected}`** (also the demo app's default).")
+
+    def held_cell(k: int, p: str) -> str:
+        r = held_mac[(held_mac.k == k) & (held_mac.policy == p)].iloc[0]
+        return f"**{r.balanced_accuracy:.1f}** · {r.frr:.1f} / {r.escape:.1f}"
+
+    held_lines = ["| k | " + " | ".join(POLICY_LABEL[p] for p in ("good_only", selected, "oracle")) + " |",
+                  "|---:|---|---|---|"]
+    held_lines += [f"| {k}{' ‡' if k == 1 else ''} | " + " | ".join(held_cell(k, p) for p in
+                                                                  ("good_only", selected, "oracle")) + " |"
+                   for k in ks]
 
     # synthetic vs real AUROC
     rho_rows = []
     for k in ks:
-        s = synth[synth.k == k].groupby("category")[["synth_auroc", "real_auroc"]].mean()
+        sk = synth[synth.k == k]
+        s = sk.groupby("category")[["synth_auroc", "real_auroc"]].mean()
         rho, pval = spearmanr(s.synth_auroc, s.real_auroc)
+        ratio = float((sk.synth_good_median / sk.real_good_median).median())
         rho_rows.append(f"| {k} | {s.synth_auroc.mean() * 100:.1f} | {s.real_auroc.mean() * 100:.1f} | "
-                        f"{rho:+.2f} (p = {pval:.2g}) |")
+                        f"{rho:+.2f} (p = {pval:.2g}) | {ratio:.2f} |")
     calibration_scatter(cal, 4 if 4 in ks else ks[0], results / "frr_escape_k4.png")
     return "\n\n".join([
         "### Deployable cutoff from synthetic defects (FRR / escape on real defects)",
         head,
-        "Cells: **balanced accuracy** · FRR / escape rate, all in %, macro mean over 15 categories, mean of 3 "
+        sel_txt,
+        f"Held-out categories ({', '.join(PRETTY.get(c, c) for c in held)}) — cells: **balanced accuracy** · "
+        "FRR / escape rate (%), macro mean, mean of 3 seeds:",
+        "\n".join(held_lines),
+        "All policies, all 15 categories. Cells: **balanced accuracy** · FRR / escape rate, all in %, macro mean "
+        "over 15 categories, mean of 3 "
         "seeds. Cutoffs use only the k good references (protocol frozen in `docs/calibration_protocol.md`). "
         "† `oracle` = Youden cutoff on the real test labels — an upper bound, not deployable. "
         "‡ k = 1 has no leave-one-out: good copies are augmentations of the bank image itself, so calibration "
@@ -268,7 +321,11 @@ def calibration_section(results: Path) -> str:
         "![FRR vs escape at k=4](results/frr_escape_k4.png)",
         "Does the synthetic task predict real difficulty? Synthetic AUROC (synthetic good vs synthetic defect) vs "
         "real image AUROC, macro and Spearman rank correlation across the 15 categories:",
-        "| k | synthetic AUROC (%) | real AUROC (%) | Spearman ρ |\n|---:|---:|---:|---|\n" + "\n".join(rho_rows),
+        "| k | synthetic AUROC (%) | real AUROC (%) | Spearman ρ | synthetic-good ÷ real-good median score |\n"
+        "|---:|---:|---:|---|---:|\n" + "\n".join(rho_rows),
+        "Last column: per run, median calibration-good score divided by median real-good test score (median over "
+        "the 45 runs per k). Above 1 ⇒ calibration goods look *worse* than real goods (good-only cutoffs too "
+        "high ⇒ escapes); below 1 ⇒ too optimistic (cutoffs too low ⇒ false rejects).",
     ])
 
 
@@ -318,6 +375,14 @@ def build(results: Path, paper_csv: Path, readme: Path) -> str:
     mc_img, mc_pix = macro(bench, "image_auroc"), macro(bench, "pixel_auroc")
     p_img = paper_lookup(paper, "tab:MVTec-detailed-agnostic", resolution, "image_auroc")
     p_pix = paper_lookup(paper, "tab:results_MVTec", resolution, "pixel_auroc")
+    summary = []
+    for metric, mc, pp in (("image_auroc", mc_img, p_img), ("pixel_auroc", mc_pix, p_pix)):
+        for _, r in mc.iterrows():
+            paper_mean, paper_std = pp.get(("MEAN", int(r.k)), (np.nan, np.nan))
+            summary.append({"metric": metric, "k": int(r.k), "mean": r["mean"], "std": r["std"],
+                            "n_seeds": int(r.n_seeds), "n_categories": int(r.n_cat), "resolution": resolution,
+                            "paper_mean": paper_mean, "paper_std": paper_std})
+    pd.DataFrame(summary).to_csv(results / "summary_auroc.csv", index=False)
     n_cat, ks = bench.category.nunique(), sorted(bench.k.unique())
     seeds = sorted(bench.seed.unique())
     chart(bench, paper, resolution, results / "auroc_vs_k.png")
@@ -346,10 +411,17 @@ def build(results: Path, paper_csv: Path, readme: Path) -> str:
     for k in ks:
         if ("MEAN", k) in p_img:
             gaps.append((k, row(mc_img, k)["mean"] - p_img[("MEAN", k)][0]))
+    pc_img = per_category(bench, "image_auroc")
+    pc_img["paper"] = [p_img.get((c, k), (np.nan, np.nan))[0] for c, k in zip(pc_img.category, pc_img.k, strict=True)]
+    pc_img["gap"] = (pc_img["mean"] - pc_img["paper"]).abs()
+    worst_gap = pc_img.loc[pc_img.gap.idxmax()]
     big = [f"k={k}: {g:+.2f}" for k, g in gaps if abs(g) > 1.0]
     parts.append("Gap to paper (macro image AUROC, ours − paper): " + ", ".join(f"k={k} {g:+.2f}" for k, g in gaps)
                  + (f". **Gaps > 1 pt: {', '.join(big)}** — see *Paper comparison*." if big else
-                    ". All within 1 pt."))
+                    ". All within 1 pt.")
+                 + f" Largest per-category gap over all {len(pc_img)} (category, k) cells: "
+                   f"{worst_gap['gap']:.2f} pts ({PRETTY.get(worst_gap.category, worst_gap.category)}, "
+                   f"k={int(worst_gap.k)}; the paper reports values rounded to 0.1).")
     parts.append(f"![AUROC vs k]({'results/auroc_vs_k.png'})")
     parts.append(f"### Image AUROC (%) per category — ours vs AnomalyDINO-S ({resolution}) paper\n\n"
                  + image_table(bench, paper, resolution))
