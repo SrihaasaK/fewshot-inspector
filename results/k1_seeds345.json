@@ -1,0 +1,88 @@
+{
+  "meta": {
+    "timestamp_utc": "2026-10-12T22:21:57Z",
+    "git_sha": "e9ad04dc42230031fbaefaffd1cad3a9892f2d7d",
+    "device": "mps",
+    "device_name": "Apple M4 Pro (MPS)",
+    "torch_version": "2.14.1",
+    "python_version": "3.12.14",
+    "platform": "macOS-27.0.1-arm64-arm-64bit",
+    "config": {
+      "model_name": "dinov2_vits14",
+      "resolution": 672,
+      "masking": "auto",
+      "category": null,
+      "rotate_references": true,
+      "rotation_angles": [
+        0.0,
+        45.0,
+        90.0,
+        135.0,
+        180.0,
+        225.0,
+        270.0,
+        315.0
+      ],
+      "mask_references": false,
+      "mask_threshold": 10.0,
+      "mask_border": 0.2,
+      "mask_min_center_fraction": 0.35,
+      "mask_kernel": 3,
+      "mask_morphology": "flat",
+      "top_pct": 0.01,
+      "sigma": 4.0,
+      "device": "mps",
+      "knn_dtype": "auto",
+      "knn_backend": "torch",
+      "batch_size": 8
+    },
+    "script": "gate_phase1",
+    "args": {
+      "data_root": "data/mvtec_ad",
+      "categories": [
+        "screw",
+        "capsule"
+      ],
+      "k": 1,
+      "seeds": [
+        3,
+        4,
+        5
+      ],
+      "resolution": 672,
+      "device": "auto",
+      "chunk": 32,
+      "paper": "docs/paper_numbers.csv",
+      "out": "results/k1_seeds345.json"
+    }
+  },
+  "categories": {
+    "screw": {
+      "image_auroc_per_seed": [
+        90.16191842590695,
+        94.05615904898545,
+        89.8749743799959
+      ],
+      "mean": 91.3643506182961,
+      "std": 1.9069974116428234,
+      "paper_mean": 93.2,
+      "paper_std": 0.3,
+      "tolerance": 2.0,
+      "pass": true
+    },
+    "capsule": {
+      "image_auroc_per_seed": [
+        81.81092939768646,
+        77.86198643797367,
+        78.54008775428798
+      ],
+      "mean": 79.4043345299827,
+      "std": 1.7240899999208004,
+      "paper_mean": 90.2,
+      "paper_std": 5.5,
+      "tolerance": 5.5,
+      "pass": false
+    }
+  },
+  "gate_pass": false
+}

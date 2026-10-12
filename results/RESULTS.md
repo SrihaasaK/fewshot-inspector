@@ -153,6 +153,17 @@ Per defect type: image AUROC of that type against all good test images (mean of 
 
 ![cable failure cases](docs/failure_cable.png)
 
+### Reference-choice sensitivity at k = 1 (outside the paper protocol)
+
+Same code, references = train images 3, 4, 5 (the paper uses the first three). Run from commit `e9ad04dc4223` on Apple M4 Pro (MPS).
+
+| Category | ours, seeds 0–2 | paper | ours, seeds 3/4/5 (per seed) |
+|---|---:|---:|---:|
+| Screw | 93.2 ± 0.3 | 93.2 ± 0.3 | **91.4 ± 1.9** (90.2 / 94.1 / 89.9) |
+| Capsule | 90.2 ± 5.5 | 90.2 ± 5.5 | **79.4 ± 1.7** (81.8 / 77.9 / 78.5) |
+
+![capsule references](docs/reference_sheet_capsule.png)
+
 ### Demo-app setup time on CPU (4 references → fitted + calibrated inspector)
 
 Measured with `scripts/time_app_setup.py` on Apple M4 Pro (CPU) over bottle, screw; model already loaded (first load 0.9 s). `n_cal` = synthetic images per class; 8 rotations per reference.
