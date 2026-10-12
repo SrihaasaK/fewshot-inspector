@@ -54,7 +54,8 @@ def main() -> None:
     device = select_device(args.device)
     base = InspectorConfig(resolution=args.resolution, device=str(device))
     backbone = Backbone(base.model_name, device)
-    report: dict[str, object] = {"meta": run_metadata(device, base.to_dict(), script="gate_phase1"), "categories": {}}
+    report: dict[str, object] = {"meta": run_metadata(device, base.to_dict(), script="gate_phase1", args=vars(args)),
+                                "categories": {}}
     all_pass = True
     for cat in args.categories:
         data = load_category(args.data_root, cat)

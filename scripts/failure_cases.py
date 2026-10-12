@@ -63,7 +63,19 @@ def main() -> None:
     ap.add_argument("--resolution", type=int, default=672)
     ap.add_argument("--n-worst", type=int, default=3)
     ap.add_argument("--device", default="auto")
+    ap.add_argument("--reference-sheet", default=None, metavar="CATEGORY",
+                    help="only write docs/reference_sheet_<category>.png (train images 000-005 = seeds 0-5 at k=1)")
     args = ap.parse_args()
+    if args.reference_sheet:
+        cat = args.reference_sheet
+        train = load_category(args.data_root, cat).train_paths[:6]
+        imgs = [load_image(p) for p in train]
+        path = save_grid([imgs[:3], imgs[3:]], [[f"{p.name} = k=1 seed {i}" for i, p in enumerate(train[:3])],
+                                                 [f"{p.name} = k=1 seed {i + 3}" for i, p in enumerate(train[3:])]],
+                         args.docs / f"reference_sheet_{cat}.png",
+                         suptitle=f"{cat}: the first six train images (MVTec AD, CC BY-NC-SA 4.0)", cell=2.6)
+        LOG.info("wrote %s", path)
+        return
 
     bench = pd.read_csv(args.results / "benchmark.csv")
     scores = pd.read_csv(args.results / "raw" / f"scores_{args.resolution}.csv")

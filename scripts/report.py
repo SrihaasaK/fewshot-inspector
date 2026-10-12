@@ -360,6 +360,26 @@ def failure_section(results: Path, bench: pd.DataFrame, n_worst: int = 3) -> str
 APP_CPU_DEFAULT = (448, 32)  # (resolution, n_cal) — keep in sync with app/streamlit_app.py
 
 
+def seed_section(results: Path, bench: pd.DataFrame, paper: pd.DataFrame) -> str:
+    """k = 1 with reference images outside the paper protocol (seeds 3-5) vs seeds 0-2 and the paper."""
+    extra = json.loads((results / "k1_seeds345.json").read_text())
+    res = int(bench.resolution.iloc[0])
+    pp = paper_lookup(paper, "tab:MVTec-detailed-agnostic", res, "image_auroc")
+    pc = per_category(bench[bench.k == 1], "image_auroc").set_index("category")
+    rows = []
+    for cat, r in extra["categories"].items():
+        vals = " / ".join(f"{v:.1f}" for v in r["image_auroc_per_seed"])
+        rows.append(f"| {PRETTY.get(cat, cat)} | {pm(pc.loc[cat, 'mean'], pc.loc[cat, 'std'])} | "
+                    f"{pm(*pp[(cat, 1)])} | **{pm(r['mean'], r['std'])}** ({vals}) |")
+    seeds = ", ".join(str(s) for s in extra["meta"]["args"]["seeds"])
+    return ("### Reference-choice sensitivity at k = 1 (outside the paper protocol)\n\n"
+            f"Same code, references = train images {seeds} (the paper uses the first three). Run from commit "
+            f"`{short_sha(extra['meta']['git_sha'])}` on {extra['meta']['device_name']}.\n\n"
+            "| Category | ours, seeds 0–2 | paper | ours, seeds " + seeds.replace(", ", "/") + " (per seed) |\n"
+            "|---|---:|---:|---:|\n" + "\n".join(rows)
+            + "\n\n![capsule references](docs/reference_sheet_capsule.png)")
+
+
 def app_section(results: Path) -> str:
     d = pd.read_csv(results / "app_setup_cpu.csv")
     meta_path = results / "app_setup_cpu.json"
@@ -474,6 +494,8 @@ def build(results: Path, paper_csv: Path, readme: Path) -> str:
         parts.append(calib_md)
     if (results / "defect_types.csv").exists():
         parts.append(failure_section(results, bench))
+    if (results / "k1_seeds345.json").exists():
+        parts.append(seed_section(results, bench, paper))
     if (results / "app_setup_cpu.csv").exists():
         parts.append(app_section(results))
     content = "\n\n".join(parts) + "\n"
