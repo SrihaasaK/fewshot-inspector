@@ -202,12 +202,16 @@ class Inspector:
         return self.bank
 
     @torch.inference_mode()
-    def patch_distances(self, features: torch.Tensor) -> tuple[torch.Tensor, np.ndarray]:
-        """``[B, h, w, C]`` raw tokens → (distances ``[B, h, w]`` with background zeroed, fg masks)."""
+    def patch_distances(self, features: torch.Tensor,
+                        fg_masks: np.ndarray | None = None) -> tuple[torch.Tensor, np.ndarray]:
+        """``[B, h, w, C]`` raw tokens → (distances ``[B, h, w]`` with background zeroed, fg masks).
+
+        ``fg_masks`` lets callers reuse precomputed test masks (they depend only on the test image).
+        """
         bank = self._require_fit()
         dist = bank.knn_distance(features)
         if self.use_masking:
-            fg = np.stack([self.foreground_mask(f) for f in features])
+            fg = fg_masks if fg_masks is not None else np.stack([self.foreground_mask(f) for f in features])
             dist = dist * torch.from_numpy(fg).to(dist.device, dist.dtype)
         else:
             fg = np.ones(dist.shape, dtype=bool)
