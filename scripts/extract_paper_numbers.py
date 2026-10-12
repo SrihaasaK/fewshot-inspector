@@ -118,7 +118,7 @@ def parse_full_results(tex: str) -> list[dict[str, object]]:
 
 def _download_source(dest: Path) -> Path:
     LOG.info("downloading %s", ARXIV_SRC)
-    with urllib.request.urlopen(ARXIV_SRC, timeout=120) as resp:  # noqa: S310 (fixed https URL)
+    with urllib.request.urlopen(ARXIV_SRC, timeout=120) as resp:
         data = resp.read()
     with tarfile.open(fileobj=io.BytesIO(data), mode="r:gz") as tar:
         members = [m for m in tar.getmembers() if m.name.startswith("tables/") and m.isfile()]
