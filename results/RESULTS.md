@@ -150,3 +150,22 @@ Per defect type: image AUROC of that type against all good test images (mean of 
 | poke_insulation | 100.0 | 10 | 2.82 | 9.1 |
 
 ![cable failure cases](docs/failure_cable.png)
+
+### Demo-app setup time on CPU (4 references → fitted + calibrated inspector)
+
+Measured with `scripts/time_app_setup.py` on Apple M4 Pro (CPU) over bottle, screw; model already loaded (first load 0.9 s). `n_cal` = synthetic images per class; 8 rotations per reference.
+
+| resolution | n_cal | CPU threads | median (s) | max (s) | |
+|---:|---:|---:|---:|---:|---|
+| 224 | 16 | 2 | 1.4 | 1.6 |
+| 224 | 16 | 10 | 1.2 | 1.4 |
+| 224 | 32 | 2 | 2.4 | 2.6 |
+| 224 | 32 | 10 | 2.0 | 2.2 |
+| 224 | 64 | 2 | 4.2 | 4.7 |
+| 224 | 64 | 10 | 3.7 | 4.2 |
+| 448 | 16 | 2 | 5.0 | 5.2 |
+| 448 | 16 | 10 | 3.3 | 3.4 |
+| 448 | 32 | 2 | 7.9 | 8.3 | ← app CPU default
+| 448 | 32 | 10 | 5.3 | 5.6 | ← app CPU default
+| 448 | 64 | 2 | 13.6 | 14.1 |
+| 448 | 64 | 10 | 9.0 | 9.5 |

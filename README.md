@@ -9,7 +9,11 @@ A faithful reimplementation of **AnomalyDINO** (Damm et al., WACV 2025) — froz
 features + nearest-neighbour matching — plus one original addition: **choosing the production cutoff from
 synthetic defects only**, then measuring false-reject and escape rates on the real MVTec AD defects.
 
-<!-- DEMO -->
+![Demo: 4 good bottles → inspector + calibrated cutoff on CPU → PASS/FAIL with heatmaps](docs/demo.gif)
+
+*Streamlit demo running CPU-only: four good MVTec bottles → calibrated inspector → two good parts PASS, three
+defective parts FAIL with heatmaps. MVTec AD images, CC BY-NC-SA 4.0. Live link: not deployed yet — see
+[Deploy the demo](#deploy-the-demo) (no hosting credentials were available to the build).*
 
 ## How it works
 
@@ -204,6 +208,25 @@ Per defect type: image AUROC of that type against all good test images (mean of 
 | poke_insulation | 100.0 | 10 | 2.82 | 9.1 |
 
 ![cable failure cases](docs/failure_cable.png)
+
+### Demo-app setup time on CPU (4 references → fitted + calibrated inspector)
+
+Measured with `scripts/time_app_setup.py` on Apple M4 Pro (CPU) over bottle, screw; model already loaded (first load 0.9 s). `n_cal` = synthetic images per class; 8 rotations per reference.
+
+| resolution | n_cal | CPU threads | median (s) | max (s) | |
+|---:|---:|---:|---:|---:|---|
+| 224 | 16 | 2 | 1.4 | 1.6 |
+| 224 | 16 | 10 | 1.2 | 1.4 |
+| 224 | 32 | 2 | 2.4 | 2.6 |
+| 224 | 32 | 10 | 2.0 | 2.2 |
+| 224 | 64 | 2 | 4.2 | 4.7 |
+| 224 | 64 | 10 | 3.7 | 4.2 |
+| 448 | 16 | 2 | 5.0 | 5.2 |
+| 448 | 16 | 10 | 3.3 | 3.4 |
+| 448 | 32 | 2 | 7.9 | 8.3 | ← app CPU default
+| 448 | 32 | 10 | 5.3 | 5.6 | ← app CPU default
+| 448 | 64 | 2 | 13.6 | 14.1 |
+| 448 | 64 | 10 | 9.0 | 9.5 |
 <!-- RESULTS:END -->
 
 ## Paper comparison
@@ -256,6 +279,8 @@ The per-defect-type tables and grids in *Failure analysis* above point to three 
   parts, because each leave-one-out bank is missing one reference and the good-copy augmentation (±10°,
   ±3 % shift, photometric jitter) adds variation real goods do not have. A cutoff placed just above those
   goods sits above many real defects. `synth_youden` inherits the same inflated goods and also lands high.
+  One visible contributor (the `cutpaste_scar` panel of the demo screenshot below): rotating/shifting a good copy fills
+  its borders by reflection, and those border patches look unlike anything in the bank.
 - **Why `synth_escape5` works better.** It anchors on the *faintest* synthetic defects (low-opacity stains,
   hairline scratches), which score in the same range as real MVTec defects, and trades some false rejects
   for far fewer escapes. The per-category scatter shows the remaining errors are concentrated: escapes in
@@ -323,7 +348,32 @@ pip install -r requirements-app.txt   # CPU-only torch wheels
 streamlit run app/streamlit_app.py
 ```
 
-<!-- DEPLOY -->
+Sidebar: resolution, masking (auto/on/off), rotation augmentation, cutoff policy (default `synth_escape5`,
+selected on dev categories), calibration-set size and a manual cutoff override. Step 1 builds the inspector
+from 1–16 uploaded good images and shows setup time, the cutoff and three scored synthetic defects; step 2
+gives PASS/FAIL with the margin to the cutoff, overlay + raw heatmap and latency. With a local
+`data/mvtec_ad`, an "MVTec example" picker loads 4 references and random good/defective test images (images
+are never bundled). `FEWSHOT_DEVICE=cpu` forces CPU mode on a GPU machine. CPU setup times are in the
+generated *Demo-app setup time* table above.
+
+<p>
+  <img src="docs/demo_3_built.png" width="49%" alt="Inspector built from 4 references: setup time, cutoff, synthetic defects">
+  <img src="docs/demo_5_inspect.png" width="49%" alt="FAIL verdicts with heatmaps on broken and contaminated bottles">
+</p>
+
+### Deploy the demo
+
+Hugging Face Spaces retired the native Streamlit SDK (new Streamlit Spaces use Docker, which requires a paid
+plan on CPU hardware), so the free target is **Streamlit Community Cloud**. It reads `app/requirements.txt`
+(an exact copy of `requirements-app.txt`, kept in sync by CI) with CPU-only torch wheels.
+
+1. Fork or push this repository to GitHub (public).
+2. Sign in at <https://share.streamlit.io> with GitHub and allow access to the repository.
+3. **Create app** → *Deploy a public app from GitHub*: repository `SrihaasaK/fewshot-inspector`, branch `main`,
+   main file path `app/streamlit_app.py`.
+4. *Advanced settings* → Python 3.12 → **Deploy**.
+5. First boot installs CPU torch and downloads DINOv2 ViT-S/14 (~90 MB) via `torch.hub`; then upload 4 good
+   photos and click **Build inspector**.
 
 ## Repository layout
 

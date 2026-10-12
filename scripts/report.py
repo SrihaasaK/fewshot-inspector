@@ -351,19 +351,24 @@ def failure_section(results: Path, bench: pd.DataFrame, n_worst: int = 3) -> str
     return "\n\n".join(blocks)
 
 
+APP_CPU_DEFAULT = (448, 32)  # (resolution, n_cal) — keep in sync with app/streamlit_app.py
+
+
 def app_section(results: Path) -> str:
     d = pd.read_csv(results / "app_setup_cpu.csv")
     meta_path = results / "app_setup_cpu.json"
     meta = json.loads(meta_path.read_text()) if meta_path.exists() else {}
     g = d.groupby(["resolution", "n_cal", "threads"]).total_s.agg(["median", "max"]).reset_index()
-    rows = "\n".join(f"| {r.resolution} | {r.n_cal} | {r.threads} | {r['median']:.1f} | {r['max']:.1f} |"
-                     for _, r in g.iterrows())
+    rows = "\n".join(
+        f"| {int(r.resolution)} | {int(r.n_cal)} | {int(r.threads)} | {r['median']:.1f} | {r['max']:.1f} |"
+        + (" ← app CPU default" if (int(r.resolution), int(r.n_cal)) == APP_CPU_DEFAULT else "")
+        for _, r in g.iterrows())
     cats = ", ".join(sorted(d.category.unique()))
     return ("### Demo-app setup time on CPU (4 references → fitted + calibrated inspector)\n\n"
             f"Measured with `scripts/time_app_setup.py` on {meta.get('device_name', 'CPU')} over {cats}; model "
             f"already loaded (first load {meta.get('model_load_s', float('nan')):.1f} s). `n_cal` = synthetic "
             "images per class; 8 rotations per reference.\n\n"
-            "| resolution | n_cal | CPU threads | median (s) | max (s) |\n|---:|---:|---:|---:|---:|\n" + rows)
+            "| resolution | n_cal | CPU threads | median (s) | max (s) | |\n|---:|---:|---:|---:|---:|---|\n" + rows)
 
 
 # ----------------------------------------------------------------------------- assembly

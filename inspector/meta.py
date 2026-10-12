@@ -17,14 +17,18 @@ def device_name(device: torch.device) -> str:
     """Human-readable accelerator name, e.g. ``Tesla T4`` or ``Apple M4 Pro (MPS)``."""
     if device.type == "cuda":
         return torch.cuda.get_device_name(device)
-    if device.type == "mps":
-        chip = "Apple Silicon"
-        if sys.platform == "darwin":
-            with contextlib.suppress(OSError, subprocess.SubprocessError):
-                chip = subprocess.run(["sysctl", "-n", "machdep.cpu.brand_string"], capture_output=True,
-                                      text=True, check=True, timeout=5).stdout.strip() or chip
-        return f"{chip} (MPS)"
-    return f"CPU ({platform.processor() or platform.machine()})"
+    chip = platform.processor() or platform.machine()
+    if sys.platform == "darwin":
+        with contextlib.suppress(OSError, subprocess.SubprocessError):
+            chip = subprocess.run(["sysctl", "-n", "machdep.cpu.brand_string"], capture_output=True,
+                                  text=True, check=True, timeout=5).stdout.strip() or chip
+    elif sys.platform.startswith("linux"):
+        with contextlib.suppress(OSError):
+            for line in Path("/proc/cpuinfo").read_text().splitlines():
+                if line.startswith("model name"):
+                    chip = line.split(":", 1)[1].strip()
+                    break
+    return f"{chip} (MPS)" if device.type == "mps" else f"{chip} (CPU)"
 
 
 def git_sha(repo: str | Path = ".") -> str:

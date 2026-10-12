@@ -1,0 +1,63 @@
+{
+  "timestamp_utc": "2026-10-12T21:14:30Z",
+  "git_sha": "9e682dd5545e8df059394f24c1435239f88f70ab-dirty",
+  "device": "cpu",
+  "device_name": "Apple M4 Pro (CPU)",
+  "torch_version": "2.14.1",
+  "python_version": "3.12.14",
+  "platform": "macOS-27.0.1-arm64-arm-64bit",
+  "config": {
+    "model_name": "dinov2_vits14",
+    "resolution": 448,
+    "masking": "auto",
+    "category": null,
+    "rotate_references": true,
+    "rotation_angles": [
+      0.0,
+      45.0,
+      90.0,
+      135.0,
+      180.0,
+      225.0,
+      270.0,
+      315.0
+    ],
+    "mask_references": false,
+    "mask_threshold": 10.0,
+    "mask_border": 0.2,
+    "mask_min_center_fraction": 0.35,
+    "mask_kernel": 3,
+    "mask_morphology": "flat",
+    "top_pct": 0.01,
+    "sigma": 4.0,
+    "device": "cpu",
+    "knn_dtype": "auto",
+    "knn_backend": "torch",
+    "batch_size": 8
+  },
+  "script": "time_app_setup",
+  "args": {
+    "data_root": "data/mvtec_ad",
+    "categories": [
+      "bottle",
+      "screw"
+    ],
+    "resolutions": [
+      224,
+      448
+    ],
+    "n_cal": [
+      16,
+      32,
+      64
+    ],
+    "threads": [
+      0,
+      2
+    ],
+    "out": "results/app_setup_cpu.csv"
+  },
+  "model_load_s": 0.8970684169908054,
+  "n_references": 4,
+  "cpu_threads_available": 10
+}
