@@ -1,0 +1,21 @@
+# Dataset (MVTec AD is CC BY-NC-SA 4.0 — never commit it)
+data/
+.cache/
+results/raw/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+.ruff_cache/
+build/
+dist/
+
+# Notebooks / OS
+.ipynb_checkpoints/
+.DS_Store
+
+# Streamlit
+.streamlit/secrets.toml

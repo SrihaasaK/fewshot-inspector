@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fewshot-inspector"
+version = "0.1.0"
+description = "Training-free few-shot visual defect inspection (AnomalyDINO reimplementation) with synthetic-defect cutoff calibration"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Srihaasa Karyampudi" }]
+dependencies = [
+    "torch>=2.1",
+    "torchvision>=0.16",
+    "numpy>=1.24",
+    "pillow>=10.0",
+    "opencv-python-headless>=4.8",
+    "scikit-learn>=1.3",
+    "scipy>=1.10",
+]
+
+[project.optional-dependencies]
+bench = ["pandas>=2.0", "matplotlib>=3.7", "tqdm>=4.65"]
+faiss = ["faiss-cpu>=1.7"]
+app = ["streamlit>=1.30", "matplotlib>=3.7"]
+dev = ["pytest>=7.4", "ruff>=0.5", "pandas>=2.0", "matplotlib>=3.7"]
+
+[tool.setuptools.packages.find]
+include = ["inspector*"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+extend-exclude = ["notebooks"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "N", "SIM", "RUF"]
+ignore = ["E501", "RUF001", "RUF002", "RUF003", "N812"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
