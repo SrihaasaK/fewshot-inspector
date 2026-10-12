@@ -1,0 +1,70 @@
+{
+  "meta": {
+    "timestamp_utc": "2026-10-12T18:38:24Z",
+    "git_sha": "003c9f785486427d6f5200d14e9266d2cd1ca494",
+    "device": "mps",
+    "device_name": "Apple M4 Pro (MPS)",
+    "torch_version": "2.14.1",
+    "python_version": "3.12.14",
+    "platform": "macOS-27.0.1-arm64-arm-64bit",
+    "config": {
+      "model_name": "dinov2_vits14",
+      "resolution": 672,
+      "masking": "auto",
+      "category": null,
+      "rotate_references": true,
+      "rotation_angles": [
+        0.0,
+        45.0,
+        90.0,
+        135.0,
+        180.0,
+        225.0,
+        270.0,
+        315.0
+      ],
+      "mask_references": false,
+      "mask_threshold": 10.0,
+      "mask_border": 0.2,
+      "mask_min_center_fraction": 0.35,
+      "mask_kernel": 3,
+      "mask_morphology": "flat",
+      "top_pct": 0.01,
+      "sigma": 4.0,
+      "device": "mps",
+      "knn_dtype": "auto",
+      "knn_backend": "torch",
+      "batch_size": 8
+    },
+    "script": "gate_phase1"
+  },
+  "categories": {
+    "bottle": {
+      "image_auroc_per_seed": [
+        100.0,
+        99.68253968253968,
+        99.52380952380952
+      ],
+      "mean": 99.73544973544973,
+      "std": 0.1979712903055014,
+      "paper_mean": 99.7,
+      "paper_std": 0.2,
+      "tolerance": 2.0,
+      "pass": true
+    },
+    "screw": {
+      "image_auroc_per_seed": [
+        93.09284689485551,
+        93.60524697683952,
+        92.92887886862063
+      ],
+      "mean": 93.20899091343857,
+      "std": 0.28808046242136987,
+      "paper_mean": 93.2,
+      "paper_std": 0.3,
+      "tolerance": 2.0,
+      "pass": true
+    }
+  },
+  "gate_pass": true
+}
