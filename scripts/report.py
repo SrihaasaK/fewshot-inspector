@@ -232,6 +232,12 @@ def calibration_scatter(cal: pd.DataFrame, k: int, path: Path) -> None:
     plt.close(fig)
 
 
+def selected_policy(summary: pd.DataFrame, k: int = 4) -> str:
+    """Protocol amendment 1: best synthetic policy by macro balanced accuracy on the dev categories at k."""
+    d = summary[(summary.subset == "dev") & (summary.k == k) & (summary.policy.isin(SYNTH_POLICIES))]
+    return str(d.sort_values("balanced_accuracy", ascending=False).policy.iloc[0])
+
+
 def calibration_section(results: Path) -> str:
     from scipy.stats import spearmanr
 
@@ -409,6 +415,26 @@ def build(results: Path, paper_csv: Path, readme: Path) -> str:
             pixtxt = (f", pixel AUROC **{pm(rp['mean'], rp['std'])}**"
                       + (f" (paper {pm(*p_pix[('MEAN', k)])})" if ("MEAN", k) in p_pix else "")) if rp is not None else ""
             head.append(f"- **{k}-shot**: image AUROC **{pm(r['mean'], r['std'])}**{ptxt}{pixtxt}")
+    calib_md = calibration_section(results) if (results / "calibration.csv").exists() else None
+    summ_path = results / "summary_calibration.csv"
+    if calib_md is not None and summ_path.exists():
+        sc = pd.read_csv(summ_path)
+        sel = selected_policy(sc)
+        r = sc[(sc.subset == "heldout") & (sc.k == 4) & (sc.policy == sel)]
+        if len(r):
+            r = r.iloc[0]
+            head.append(f"- **Deployable cutoff, 4 good refs, zero defect photos** (`{sel}`, {int(r.n_categories)} "
+                        f"held-out categories): FRR **{r.frr:.1f} %**, escape **{r.escape:.1f} %**, balanced "
+                        f"accuracy **{r.balanced_accuracy:.1f} %**")
+    lat_csv = results / "latency.csv"
+    if lat_csv.exists():
+        lat = pd.read_csv(lat_csv)
+        a = lat[lat["mode"] == "tensor_to_score_heatmap"].set_index("resolution")
+        lmeta_path = results / "run_meta_latency.json"
+        dev = (json.loads(lmeta_path.read_text()) if lmeta_path.exists() else meta)["device_name"]
+        head.append("- **Latency** (batch 1, tensor → score + full-res heatmap, median): "
+                    + ", ".join(f"**{a.loc[res, 'median_ms']:.1f} ms** @ {res} px" for res in sorted(a.index))
+                    + f" on {dev}")
     parts.append("### Headline\n\n" + "\n".join(head))
 
     # gap analysis vs paper (macro image AUROC)
@@ -444,8 +470,8 @@ def build(results: Path, paper_csv: Path, readme: Path) -> str:
                        "model work; (b) adds PNG decoding and resizing on the CPU. The paper reports 60 ms (448) / "
                        "86 ms (672) per image on an NVIDIA A40 for its timer (decode → score, *without* heatmap "
                        "upsampling); no CUDA GPU was used here.")
-    if (results / "calibration.csv").exists():
-        parts.append(calibration_section(results))
+    if calib_md is not None:
+        parts.append(calib_md)
     if (results / "defect_types.csv").exists():
         parts.append(failure_section(results, bench))
     if (results / "app_setup_cpu.csv").exists():
