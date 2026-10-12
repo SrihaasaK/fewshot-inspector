@@ -20,10 +20,24 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-import cv2  # noqa: E402
-import numpy as np  # noqa: E402
 import streamlit as st  # noqa: E402
-import torch  # noqa: E402
+
+try:  # fail with an actionable message instead of Community Cloud's redacted traceback
+    import cv2
+    import numpy as np
+    import torch
+    import torchvision  # noqa: F401
+except ModuleNotFoundError as exc:  # pragma: no cover - deployment misconfiguration
+    import platform
+
+    st.error(
+        f"**`{exc.name}` is not installed** (Python {platform.python_version()}, {sys.platform}/"
+        f"{platform.machine()}). `app/requirements.txt` pins CPU-only torch/torchvision wheels for every Python "
+        "that has them (see its header). On Streamlit Community Cloud open **Manage app → logs** to see why the "
+        "install skipped or failed; if your Python version is not covered, delete the app and redeploy it with "
+        "**Python 3.12** under *Advanced settings*."
+    )
+    st.stop()
 
 from inspector import Backbone, ImageLoadError, Inspector, InspectorConfig, load_image, select_device  # noqa: E402
 from inspector.backbone import available_cpus  # noqa: E402
