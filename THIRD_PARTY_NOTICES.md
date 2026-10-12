@@ -30,5 +30,7 @@ Licence (copyright notice, conditions and disclaimer reproduced in full):
 
 ## Data
 
-MVTec AD images are **not** included. Figures under `docs/` and `results/` that show MVTec AD images are
-derived from the dataset (© MVTec Software GmbH, CC BY-NC-SA 4.0) and are shared under that licence.
+The MVTec AD dataset is **not** included. The 20 downscaled demo images in `app/samples/` (with their own
+notice, `app/samples/LICENSE.md`, and provenance manifest) and the figures under `docs/` and `results/`
+that show MVTec AD images are derived from the dataset (© MVTec Software GmbH, CC BY-NC-SA 4.0) and are
+shared under that licence.

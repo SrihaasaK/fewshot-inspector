@@ -380,6 +380,40 @@ def seed_section(results: Path, bench: pd.DataFrame, paper: pd.DataFrame) -> str
             + "\n\n![capsule references](docs/reference_sheet_capsule.png)")
 
 
+def cloud_section(results: Path) -> str:
+    """Streamlit-Community-Cloud-like check: fresh venv from app/requirements.txt, CPU, 2 threads."""
+    sw = json.loads((results / "app_cloud_sweep.json").read_text())
+    m = sw["meta"]
+    rows = "\n".join(
+        f"| {r['resolution']} | {r['category']} | {r['total_s']:.1f} ({r['fit_s']:.1f} + {r['calibration_s']:.1f}) | "
+        f"{r['score_s_per_image'] * 1000:.0f} | {r['correct']} / {r['n_tests']} |"
+        + (" ← default" if r["resolution"] == sw["chosen_resolution"] else "")
+        for r in sorted(sw["rows"], key=lambda r: (r["resolution"], r["category"])))
+    parts = ["### Community Cloud check (CPU, 2 threads, fresh venv built only from `app/requirements.txt`)",
+             f"Measured with `scripts/app_cloud_check.py` on {m['device_name']} with "
+             f"{m['threads']} torch threads, torch {m['packages']['torch']}, streamlit {m['packages']['streamlit']}, "
+             f"commit `{short_sha(m['git_sha'])}`. Bundled examples (`app/samples`): 4 references, 32 + 32 "
+             f"synthetic calibration images, `synth_escape5`. Cold model load (incl. ~90 MB download): "
+             f"{m['model_load_s']:.1f} s. Rule fixed before measuring: {sw['rule']} ⇒ default "
+             f"**{sw['chosen_resolution']} px**.",
+             "| resolution | example | setup s (fit + calibration) | ms / test image | verdicts correct | |\n"
+             "|---:|---|---:|---:|---:|---|\n" + rows]
+    e2e_path = results / "app_cloud_e2e.json"
+    if e2e_path.exists():
+        e = json.loads(e2e_path.read_text())
+        em = e["meta"]
+        lines = "\n".join(
+            f"| {c['category']} | **{c['seconds_click_to_verdicts']:.1f}** | {c['n_pass']} PASS / {c['n_fail']} FAIL | "
+            f"{c['correct_caption'].replace('Verdicts matching ground truth: ', '').rstrip('.')} | "
+            f"{c.get('n_heatmap_images', '')} |" for c in e["clicks"])
+        parts.append(f"End to end in the real app (Streamlit `AppTest`, commit `{short_sha(em['git_sha'])}`, "
+                     f"{'cold' if em.get('cold_cache') else 'warm'} model cache — the first click includes the "
+                     "weight download), seconds from clicking **▶ Try an example** to all verdicts rendered:\n\n"
+                     "| example (click order) | click → verdicts (s) | verdicts | matching ground truth | heatmap panels |\n"
+                     "|---|---:|---|---:|---:|\n" + lines)
+    return "\n\n".join(parts)
+
+
 def app_section(results: Path) -> str:
     d = pd.read_csv(results / "app_setup_cpu.csv")
     meta_path = results / "app_setup_cpu.json"
@@ -498,6 +532,8 @@ def build(results: Path, paper_csv: Path, readme: Path) -> str:
         parts.append(seed_section(results, bench, paper))
     if (results / "app_setup_cpu.csv").exists():
         parts.append(app_section(results))
+    if (results / "app_cloud_sweep.json").exists():
+        parts.append(cloud_section(results))
     content = "\n\n".join(parts) + "\n"
     (results / "RESULTS.md").write_text("# Results\n\n" + content.replace("](results/", "]("))
     inject(readme, content)

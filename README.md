@@ -14,7 +14,7 @@ synthetic defects only**, then measuring false-reject and escape rates on the re
 
 *Streamlit demo running CPU-only: four good MVTec bottles → calibrated inspector → two good parts PASS, three
 defective parts FAIL with heatmaps. MVTec AD images, CC BY-NC-SA 4.0. Live link: not deployed yet — see
-[Deploy the demo](#deploy-the-demo) (no hosting credentials were available to the build).*
+[Deploy on Streamlit Community Cloud](#deploy-on-streamlit-community-cloud) (deployment needs the author's Streamlit sign-in).*
 
 ## How it works
 
@@ -241,6 +241,26 @@ Measured with `scripts/time_app_setup.py` on Apple M4 Pro (CPU) over bottle, scr
 | 448 | 32 | 10 | 5.3 | 5.6 | ← app CPU default
 | 448 | 64 | 2 | 13.6 | 14.1 |
 | 448 | 64 | 10 | 9.0 | 9.5 |
+
+### Community Cloud check (CPU, 2 threads, fresh venv built only from `app/requirements.txt`)
+
+Measured with `scripts/app_cloud_check.py` on Apple M4 Pro (CPU) with 2 torch threads, torch 2.14.1, streamlit 1.65.0, commit `135b429056b1`. Bundled examples (`app/samples`): 4 references, 32 + 32 synthetic calibration images, `synth_escape5`. Cold model load (incl. ~90 MB download): 2.7 s. Rule fixed before measuring: largest resolution with max setup <= 10.0 s on 2 threads ⇒ default **448 px**.
+
+| resolution | example | setup s (fit + calibration) | ms / test image | verdicts correct | |
+|---:|---|---:|---:|---:|---|
+| 224 | bottle | 1.7 (0.5 + 1.2) | 22 | 5 / 6 |
+| 224 | screw | 1.8 (0.4 + 1.4) | 25 | 4 / 6 |
+| 336 | bottle | 3.5 (1.1 + 2.5) | 45 | 6 / 6 |
+| 336 | screw | 4.0 (1.0 + 3.0) | 55 | 2 / 6 |
+| 448 | bottle | 7.2 (2.0 + 5.2) | 89 | 5 / 6 | ← default
+| 448 | screw | 7.7 (2.1 + 5.6) | 93 | 3 / 6 | ← default
+
+End to end in the real app (Streamlit `AppTest`, commit `77f19a88de67`, cold model cache — the first click includes the weight download), seconds from clicking **▶ Try an example** to all verdicts rendered:
+
+| example (click order) | click → verdicts (s) | verdicts | matching ground truth | heatmap panels |
+|---|---:|---|---:|---:|
+| bottle | **11.7** | 1 PASS / 5 FAIL | 5 / 6 | 12 |
+| screw | **8.4** | 5 PASS / 1 FAIL | 3 / 6 | 12 |
 <!-- RESULTS:END -->
 
 ## Paper comparison
@@ -342,6 +362,7 @@ python scripts/benchmark.py --categories all --shots 1 2 4 8 16 --seeds 0 1 2
 python scripts/calibrate_eval.py                                # synthetic-defect cutoffs → FRR / escape
 python scripts/failure_cases.py                                 # per-defect-type analysis + heatmap grids
 python scripts/report.py                                        # tables, charts → README
+python scripts/app_cloud_check.py sweep && python scripts/app_cloud_check.py e2e   # demo app, CPU, 2 threads
 pytest && ruff check .                                          # mock backbone, no weight download
 ```
 
@@ -363,36 +384,57 @@ print(pred.defective, pred.margin, pred.result.heatmap.shape)
 ## Demo app
 
 ```bash
-pip install -r requirements-app.txt   # CPU-only torch wheels
+pip install -r app/requirements.txt   # CPU-only torch; requirements-app.txt redirects here
 streamlit run app/streamlit_app.py
 ```
 
-Sidebar: resolution, masking (auto/on/off), rotation augmentation, cutoff policy (default `synth_escape5`,
-selected on dev categories), calibration-set size and a manual cutoff override. Step 1 builds the inspector
-from 1–16 uploaded good images and shows setup time, the cutoff and three scored synthetic defects; step 2
-gives PASS/FAIL with the margin to the cutoff, overlay + raw heatmap and latency. With a local
-`data/mvtec_ad`, an "MVTec example" picker loads 4 references and random good/defective test images (images
-are never bundled). `FEWSHOT_DEVICE=cpu` forces CPU mode on a GPU machine. CPU setup times are in the
-generated *Demo-app setup time* table above.
+Click **▶ Try an example** (bottle or screw) — no upload needed. The app builds an inspector from four bundled
+good images, calibrates the cutoff with synthetic defects and scores two good and four defective images, showing
+PASS/FAIL, the margin to the cutoff, overlay + raw heatmaps and the **ground truth next to every verdict**
+(misses and false alarms are shown, not hidden). The bundled images are a small, mechanically selected MVTec AD
+subset (references = train 000–003; tests = test/good 000–001 + defect types round-robin) under
+**CC BY-NC-SA 4.0**, licensed separately from the MIT code: see [`app/samples/LICENSE.md`](app/samples/LICENSE.md)
+and `app/samples/MANIFEST.csv` (original path + SHA-256 of every source image); rebuild with
+`python scripts/make_app_samples.py`.
+
+You can also upload 1–16 good photos of your own part and then test images. Sidebar: resolution, masking
+(auto/on/off), rotation augmentation, cutoff policy (default `synth_escape5`, selected on dev categories),
+calibration-set size and a manual cutoff override. With a local `data/mvtec_ad`, an extra picker loads random
+MVTec test images. `FEWSHOT_DEVICE=cpu` forces CPU mode; `FEWSHOT_CPU_THREADS=2` emulates a 2-core host.
+Measured timings are in the generated *Community Cloud check* table above.
 
 <p>
-  <img src="docs/demo_3_built.png" width="49%" alt="Inspector built from 4 references: setup time, cutoff, synthetic defects">
+  <img src="docs/demo_try_example.png" width="49%" alt="Try an example on CPU with 2 threads: ready in seconds, PASS/FAIL with ground truth and heatmaps">
   <img src="docs/demo_5_inspect.png" width="49%" alt="FAIL verdicts with heatmaps on broken and contaminated bottles">
 </p>
 
-### Deploy the demo
+### Deploy on Streamlit Community Cloud
 
-Hugging Face Spaces retired the native Streamlit SDK (new Streamlit Spaces use Docker, which requires a paid
-plan on CPU hardware), so the free target is **Streamlit Community Cloud**. It reads `app/requirements.txt`
-(an exact copy of `requirements-app.txt`, kept in sync by CI) with CPU-only torch wheels.
+Hugging Face Spaces retired its native Streamlit SDK (Streamlit now needs a Docker Space, which requires a paid
+plan on CPU hardware), so the free target is **Streamlit Community Cloud** (≤ 2 CPU cores, 2.7 GB RAM; apps
+sleep after 12 h without visitors). The app is prepared for it:
 
-1. Fork or push this repository to GitHub (public).
+- **Dependencies.** Cloud reads `uv.lock` / `Pipfile` / `environment.yml` / `requirements.txt` /
+  `pyproject.toml`, looking in the entrypoint's folder before the repo root, so `app/requirements.txt` is the
+  file it uses. On Linux x86_64 it pins the official `torch` / `torchvision` **`+cpu`** wheels by direct URL with
+  SHA-256 (one line per Python 3.10–3.13); elsewhere it uses PyPI, whose macOS / Windows / aarch64 wheels are
+  already CPU-only. It deliberately has **no `--extra-index-url`**: uv (Cloud's installer) does honour that line,
+  but its first-index rule then refuses to fall back to PyPI on platforms without `+cpu` wheels. CI resolves the
+  file with uv for Linux x86_64 and fails if CUDA packages appear.
+- **CPU.** torch's thread pool is sized to the container's cgroup CPU quota (not the host's core count); the
+  default resolution was chosen by a rule fixed in advance (largest resolution whose setup stays ≤ 10 s on 2
+  threads, i.e. ≥ 3× headroom under 30 s for slower cloud cores); uploads are downscaled to ≤ 1024 px.
+- **Model.** DINOv2 is loaded once per container via `st.cache_resource` with a spinner on first load. After the
+  12-hour sleep the next visitor waits for the container to boot and the ~90 MB weights to download again.
+
+Steps:
+
+1. The repository is public on GitHub (`SrihaasaK/fewshot-inspector`); for your own copy, fork it.
 2. Sign in at <https://share.streamlit.io> with GitHub and allow access to the repository.
 3. **Create app** → *Deploy a public app from GitHub*: repository `SrihaasaK/fewshot-inspector`, branch `main`,
-   main file path `app/streamlit_app.py`.
-4. *Advanced settings* → Python 3.12 → **Deploy**.
-5. First boot installs CPU torch and downloads DINOv2 ViT-S/14 (~90 MB) via `torch.hub`; then upload 4 good
-   photos and click **Build inspector**.
+   main file path `app/streamlit_app.py` (Cloud then picks up `app/requirements.txt`).
+4. *Advanced settings* → Python **3.12** (3.10–3.13 also pinned) → **Deploy**; the first build installs CPU torch.
+5. Open the app URL and click **▶ Try an example**; add the URL to the *Live link* line at the top of this README.
 
 ## Repository layout
 
@@ -400,7 +442,8 @@ plan on CPU hardware), so the free target is **Streamlit Community Cloud**. It r
 inspector/   config · backbone (DINOv2 + exact reference preprocessing) · masking · bank (1-NN) · inspector
              synth (synthetic defects) · calibrate (cutoff policies) · data (MVTec + download) · metrics · viz
 scripts/     download_mvtec · gate_phase1 · benchmark · calibrate_eval · failure_cases · report · extract_paper_numbers
-app/         streamlit_app.py
+             time_app_setup · app_cloud_check · make_app_samples
+app/         streamlit_app.py · requirements.txt (CPU-only) · samples/ (MVTec subset, CC BY-NC-SA 4.0)
 docs/        method_notes · calibration_protocol · paper_numbers.csv · failure-case grids
 results/     benchmark / latency / calibration CSVs, charts, run metadata (git SHA, device, torch version)
 ```
@@ -414,8 +457,9 @@ results/     benchmark / latency / calibration CSVs, charts, run metadata (git S
   [facebookresearch/dinov2](https://github.com/facebookresearch/dinov2) (Apache 2.0), loaded via `torch.hub`.
 - **MVTec AD** — P. Bergmann, M. Fauser, D. Sattlegger, C. Steger, CVPR 2019; P. Bergmann et al., IJCV 2021.
   © MVTec Software GmbH, [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)
-  (non-commercial). The dataset is **not** included in this repository; the example and failure-case images
-  under `docs/` and `results/` are derived from it and remain under CC BY-NC-SA 4.0.
+  (non-commercial). The dataset is **not** included in this repository; the 20 downscaled demo images in
+  `app/samples/` ([licence notice](app/samples/LICENSE.md)) and the example and failure-case images under
+  `docs/` and `results/` are derived from it and remain under CC BY-NC-SA 4.0.
 - Code: MIT (see [LICENSE](LICENSE)), except the adapted portions listed in
   [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md): AUPRO/trapezoid code adapted from AnomalyDINO
   (Apache-2.0) and the MVTec AD evaluation code (BSD-3-Clause), and reference-function test oracles copied

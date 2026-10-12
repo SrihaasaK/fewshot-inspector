@@ -1,0 +1,133 @@
+{
+  "meta": {
+    "timestamp_utc": "2026-10-12T23:21:58Z",
+    "git_sha": "135b429056b18295dececdec87ed1004759dbd85",
+    "device": "cpu",
+    "device_name": "Apple M4 Pro (CPU)",
+    "torch_version": "2.14.1",
+    "python_version": "3.12.14",
+    "platform": "macOS-27.0.1-arm64-arm-64bit",
+    "config": {
+      "model_name": "dinov2_vits14",
+      "resolution": 448,
+      "masking": "auto",
+      "category": null,
+      "rotate_references": true,
+      "rotation_angles": [
+        0.0,
+        45.0,
+        90.0,
+        135.0,
+        180.0,
+        225.0,
+        270.0,
+        315.0
+      ],
+      "mask_references": false,
+      "mask_threshold": 10.0,
+      "mask_border": 0.2,
+      "mask_min_center_fraction": 0.35,
+      "mask_kernel": 3,
+      "mask_morphology": "flat",
+      "top_pct": 0.01,
+      "sigma": 4.0,
+      "device": "cpu",
+      "knn_dtype": "auto",
+      "knn_backend": "torch",
+      "batch_size": 8
+    },
+    "script": "app_cloud_check sweep",
+    "args": {
+      "mode": "sweep",
+      "threads": 2,
+      "resolutions": [
+        224,
+        336,
+        448
+      ],
+      "n_cal": 32,
+      "max_setup": 10.0,
+      "out": "/Users/srihaasa/dev/fewshot-inspector/results/app_cloud_sweep.json"
+    },
+    "python": "/Users/srihaasa/.claude/jobs/2605d2dd/tmp/cloudvenv/bin/python",
+    "packages": {
+      "torch": "2.14.1",
+      "torchvision": "0.29.1",
+      "streamlit": "1.65.0",
+      "numpy": "2.5.4",
+      "opencv-python-headless": "5.0.0.93"
+    },
+    "threads": 2,
+    "model_load_s": 2.71601666600327
+  },
+  "rows": [
+    {
+      "category": "bottle",
+      "resolution": 224,
+      "n_cal": 32,
+      "fit_s": 0.45217824999417644,
+      "calibration_s": 1.2275761660130229,
+      "total_s": 1.6797544160071993,
+      "score_s_per_image": 0.022034389000812855,
+      "correct": 5,
+      "n_tests": 6
+    },
+    {
+      "category": "screw",
+      "resolution": 224,
+      "n_cal": 32,
+      "fit_s": 0.3988941249990603,
+      "calibration_s": 1.3703697080054553,
+      "total_s": 1.7692638330045156,
+      "score_s_per_image": 0.024976506999034125,
+      "correct": 4,
+      "n_tests": 6
+    },
+    {
+      "category": "bottle",
+      "resolution": 336,
+      "n_cal": 32,
+      "fit_s": 1.0668664590048138,
+      "calibration_s": 2.4798977079917677,
+      "total_s": 3.5467641669965815,
+      "score_s_per_image": 0.044796333332972914,
+      "correct": 6,
+      "n_tests": 6
+    },
+    {
+      "category": "screw",
+      "resolution": 336,
+      "n_cal": 32,
+      "fit_s": 1.0160342500021216,
+      "calibration_s": 2.951699416997144,
+      "total_s": 3.9677336669992656,
+      "score_s_per_image": 0.05533649999900566,
+      "correct": 2,
+      "n_tests": 6
+    },
+    {
+      "category": "bottle",
+      "resolution": 448,
+      "n_cal": 32,
+      "fit_s": 2.0319305830053054,
+      "calibration_s": 5.196436291997088,
+      "total_s": 7.2283668750023935,
+      "score_s_per_image": 0.08945374999893829,
+      "correct": 5,
+      "n_tests": 6
+    },
+    {
+      "category": "screw",
+      "resolution": 448,
+      "n_cal": 32,
+      "fit_s": 2.0826927080051973,
+      "calibration_s": 5.587184167001396,
+      "total_s": 7.669876875006594,
+      "score_s_per_image": 0.09262567349893895,
+      "correct": 3,
+      "n_tests": 6
+    }
+  ],
+  "rule": "largest resolution with max setup <= 10.0 s on 2 threads",
+  "chosen_resolution": 448
+}

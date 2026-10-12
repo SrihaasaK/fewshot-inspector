@@ -182,3 +182,23 @@ Measured with `scripts/time_app_setup.py` on Apple M4 Pro (CPU) over bottle, scr
 | 448 | 32 | 10 | 5.3 | 5.6 | ← app CPU default
 | 448 | 64 | 2 | 13.6 | 14.1 |
 | 448 | 64 | 10 | 9.0 | 9.5 |
+
+### Community Cloud check (CPU, 2 threads, fresh venv built only from `app/requirements.txt`)
+
+Measured with `scripts/app_cloud_check.py` on Apple M4 Pro (CPU) with 2 torch threads, torch 2.14.1, streamlit 1.65.0, commit `135b429056b1`. Bundled examples (`app/samples`): 4 references, 32 + 32 synthetic calibration images, `synth_escape5`. Cold model load (incl. ~90 MB download): 2.7 s. Rule fixed before measuring: largest resolution with max setup <= 10.0 s on 2 threads ⇒ default **448 px**.
+
+| resolution | example | setup s (fit + calibration) | ms / test image | verdicts correct | |
+|---:|---|---:|---:|---:|---|
+| 224 | bottle | 1.7 (0.5 + 1.2) | 22 | 5 / 6 |
+| 224 | screw | 1.8 (0.4 + 1.4) | 25 | 4 / 6 |
+| 336 | bottle | 3.5 (1.1 + 2.5) | 45 | 6 / 6 |
+| 336 | screw | 4.0 (1.0 + 3.0) | 55 | 2 / 6 |
+| 448 | bottle | 7.2 (2.0 + 5.2) | 89 | 5 / 6 | ← default
+| 448 | screw | 7.7 (2.1 + 5.6) | 93 | 3 / 6 | ← default
+
+End to end in the real app (Streamlit `AppTest`, commit `77f19a88de67`, cold model cache — the first click includes the weight download), seconds from clicking **▶ Try an example** to all verdicts rendered:
+
+| example (click order) | click → verdicts (s) | verdicts | matching ground truth | heatmap panels |
+|---|---:|---|---:|---:|
+| bottle | **11.7** | 1 PASS / 5 FAIL | 5 / 6 | 12 |
+| screw | **8.4** | 5 PASS / 1 FAIL | 3 / 6 | 12 |

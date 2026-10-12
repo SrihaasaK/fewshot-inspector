@@ -1,0 +1,72 @@
+{
+  "meta": {
+    "timestamp_utc": "2026-10-12T23:24:29Z",
+    "git_sha": "77f19a88de67da6d12512c12817c29fb520b87e1",
+    "device": "cpu",
+    "device_name": "Apple M4 Pro (CPU)",
+    "torch_version": "2.14.1",
+    "python_version": "3.12.14",
+    "platform": "macOS-27.0.1-arm64-arm-64bit",
+    "config": {},
+    "script": "app_cloud_check e2e",
+    "args": {
+      "mode": "e2e",
+      "threads": 2,
+      "categories": [
+        "bottle",
+        "screw"
+      ],
+      "timeout": 600,
+      "out": "/Users/srihaasa/dev/fewshot-inspector/results/app_cloud_e2e.json"
+    },
+    "python": "/Users/srihaasa/.claude/jobs/2605d2dd/tmp/cloudvenv/bin/python",
+    "packages": {
+      "torch": "2.14.1",
+      "torchvision": "0.29.1",
+      "streamlit": "1.65.0",
+      "numpy": "2.5.4",
+      "opencv-python-headless": "5.0.0.93"
+    },
+    "torch_hub_dir": "/Users/srihaasa/.claude/jobs/2605d2dd/tmp/torchhome_e2e3/hub",
+    "cold_cache": true,
+    "initial_render_s": 0.11404433300776873
+  },
+  "clicks": [
+    {
+      "category": "bottle",
+      "seconds_click_to_verdicts": 11.744828957991558,
+      "status": "Inspector ready in 8.4 s (incl. model load: 10.9 s) \u2014 memory bank 32,768 patches, masking off",
+      "n_pass": 1,
+      "n_fail": 5,
+      "n_images": 22,
+      "n_heatmap_images": 12,
+      "correct_caption": "Verdicts matching ground truth: 5 / 6.",
+      "ground_truth_captions": [
+        "Ground truth: **good** \u2014 \u2713 correct",
+        "Ground truth: **good** \u2014 \u2717 false alarm",
+        "Ground truth: **defective (broken_large)** \u2014 \u2713 correct",
+        "Ground truth: **defective (broken_small)** \u2014 \u2713 correct",
+        "Ground truth: **defective (contamination)** \u2014 \u2713 correct",
+        "Ground truth: **defective (broken_large)** \u2014 \u2713 correct"
+      ]
+    },
+    {
+      "category": "screw",
+      "seconds_click_to_verdicts": 8.352243875007844,
+      "status": "Inspector ready in 7.4 s (incl. model load: 7.5 s) \u2014 memory bank 32,768 patches, masking on",
+      "n_pass": 5,
+      "n_fail": 1,
+      "n_images": 22,
+      "n_heatmap_images": 12,
+      "correct_caption": "Verdicts matching ground truth: 3 / 6.",
+      "ground_truth_captions": [
+        "Ground truth: **good** \u2014 \u2713 correct",
+        "Ground truth: **good** \u2014 \u2713 correct",
+        "Ground truth: **defective (manipulated_front)** \u2014 \u2717 missed defect",
+        "Ground truth: **defective (scratch_head)** \u2014 \u2717 missed defect",
+        "Ground truth: **defective (scratch_neck)** \u2014 \u2713 correct",
+        "Ground truth: **defective (thread_side)** \u2014 \u2717 missed defect"
+      ]
+    }
+  ]
+}
