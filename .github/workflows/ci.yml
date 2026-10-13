@@ -10,7 +10,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.12"]
+        # 3.14 = the Python the live Streamlit Community Cloud app runs on
+        python-version: ["3.10", "3.12", "3.14"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -29,6 +30,7 @@ jobs:
   app-deps:
     # Streamlit Community Cloud installs app/requirements.txt with uv on Linux x86_64:
     # resolve it the same way (CPU-only torch wheels) without downloading model weights.
+    # Includes 3.14, the live app's Python.
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -46,3 +48,23 @@ jobs:
           ! grep -iE '^nvidia|^triton' /tmp/app-lock.txt
       - name: Redirect file resolves to the same set
         run: uv pip compile requirements-app.txt --python-version ${{ matrix.python-version }} --python-platform x86_64-manylinux_2_28 -o /tmp/redirect-lock.txt
+
+  app-runtime:
+    # The live Streamlit Community Cloud runtime: Linux x86_64, Python 3.14, ONLY app/requirements.txt,
+    # installed with uv as Cloud does. Checks CPU-only torch and renders the app headlessly (no model download).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Install app/requirements.txt with uv on Python 3.14
+        run: |
+          uv venv --python 3.14 /tmp/appenv
+          uv pip install --python /tmp/appenv/bin/python -r app/requirements.txt pytest
+      - name: CPU-only torch is installed
+        run: >
+          /tmp/appenv/bin/python -c "import sys, torch, torchvision;
+          assert sys.version_info[:2] == (3, 14), sys.version;
+          assert torch.__version__.endswith('+cpu') and not torch.backends.cuda.is_built(), torch.__version__;
+          print(sys.version.split()[0], torch.__version__, torchvision.__version__)"
+      - name: App renders headlessly + requirement/sample checks
+        run: /tmp/appenv/bin/python -m pytest -q tests/test_app_startup.py tests/test_app_requirements.py tests/test_samples.py

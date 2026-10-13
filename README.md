@@ -12,9 +12,16 @@ synthetic defects only**, then measuring false-reject and escape rates on the re
 
 ![Demo: 4 good bottles → inspector + calibrated cutoff on CPU → PASS/FAIL with heatmaps](docs/demo.gif)
 
-*Streamlit demo running CPU-only: four good MVTec bottles → calibrated inspector → two good parts PASS, three
-defective parts FAIL with heatmaps. MVTec AD images, CC BY-NC-SA 4.0. Live link: not deployed yet — see
-[Deploy on Streamlit Community Cloud](#deploy-on-streamlit-community-cloud) (deployment needs the author's Streamlit sign-in).*
+*Streamlit demo running CPU-only (recorded locally at 448 px): four good MVTec bottles → calibrated inspector →
+two good parts PASS, three defective parts FAIL with heatmaps. MVTec AD images, CC BY-NC-SA 4.0.*
+
+> **Demo vs benchmark.** The hosted Streamlit demo runs at **224 px** on a shared CPU so it stays fast. Every
+> benchmark number in this README is at **672 px** (the AnomalyDINO paper's setting), with latency reported at
+> **448 and 672 px**. The demo's PASS/FAIL hits on a handful of example images are an illustration, **not
+> benchmark accuracy**.
+
+**Live demo:** <https://fewshot-inspector-euqddmkr9a9xrpves9s7ru.streamlit.app/> (Streamlit Community Cloud, free
+CPU tier — click **▶ Try an example**; see [Deploy on Streamlit Community Cloud](#deploy-on-streamlit-community-cloud)).
 
 ## How it works
 
@@ -246,7 +253,9 @@ Measured with `scripts/time_app_setup.py` on Apple M4 Pro (CPU) over bottle, scr
 
 Measured with `scripts/app_cloud_check.py` on Apple M4 Pro (CPU) with 2 torch threads, torch 2.14.1, streamlit 1.65.0, commit `135b429056b1`. Bundled examples (`app/samples`): 4 references, 32 + 32 synthetic calibration images, `synth_escape5`. Cold model load (incl. ~90 MB download): 2.7 s. Rule fixed before measuring: largest resolution with max setup <= 10.0 s on 2 threads ⇒ default **448 px**.
 
-| resolution | example | setup s (fit + calibration) | ms / test image | verdicts correct | |
+Demo hit rates below come from **6 example images** at the demo resolution and illustrate the app; they are **not benchmark accuracy** — the benchmark tables above use the full MVTec AD test sets at 672 px.
+
+| resolution | example | setup s (fit + calibration) | ms / test image | demo hits (of 6) | |
 |---:|---|---:|---:|---:|---|
 | 224 | bottle | 1.7 (0.5 + 1.2) | 22 | 5 / 6 |
 | 224 | screw | 1.8 (0.4 + 1.4) | 25 | 4 / 6 |
@@ -257,14 +266,14 @@ Measured with `scripts/app_cloud_check.py` on Apple M4 Pro (CPU) with 2 torch th
 
 End to end in the real app (Streamlit `AppTest`, commit `77f19a88de67`, cold model cache — the first click includes the weight download), seconds from clicking **▶ Try an example** to all verdicts rendered:
 
-| example (click order) | click → verdicts (s) | verdicts | matching ground truth | heatmap panels |
+| example (click order) | click → verdicts (s) | verdicts | demo hits | heatmap panels |
 |---|---:|---|---:|---:|
 | bottle | **11.7** | 1 PASS / 5 FAIL | 5 / 6 | 12 |
 | screw | **8.4** | 5 PASS / 1 FAIL | 3 / 6 | 12 |
 
 **Live Community Cloud** (the deployed app; values transcribed verbatim from the app's own readouts — `results/app_cloud_live.json`). Host: AMD EPYC 7B13, Python 3.14.8, `os.cpu_count()` = 16; cgroup `cpu.max` was `max 100000` at first load and `175000 100000` later, i.e. the quota is applied after start-up.
 
-| commit | threads | resolution | example | click → verdicts (s) | setup (s) | ms / test image | correct | note |
+| commit | threads | resolution | example | click → verdicts (s) | setup (s) | ms / test image | demo hits | note |
 |---|---:|---:|---|---:|---:|---:|---:|---|
 | `2bfcd31` | 16 | 448 | bottle | 69.2 | 55.5 | 1715–2247 | 5 / 6 | thread count cached at start-up while cpu.max was 'max' |
 | `4e4fed3` | 16 | 448 | bottle | — | — | — | — | still 'Building inspector' after > 6 min under the 1.75-core quota; stopped |
@@ -400,6 +409,11 @@ pip install -r app/requirements.txt   # CPU-only torch; requirements-app.txt red
 streamlit run app/streamlit_app.py
 ```
 
+**Demo vs benchmark.** On Streamlit Community Cloud the demo defaults to **224 px** for speed (local CPUs:
+448 px); the benchmark and calibration results above are at **672 px**. The app says so on screen, and its
+"verdicts matching ground truth" count on six example images is a demo illustration — **not benchmark
+accuracy**; use the generated tables above for accuracy.
+
 Click **▶ Try an example** (bottle or screw) — no upload needed. The app builds an inspector from four bundled
 good images, calibrates the cutoff with synthetic defects and scores two good and four defective images, showing
 PASS/FAIL, the margin to the cutoff, overlay + raw heatmaps and the **ground truth next to every verdict**
@@ -454,7 +468,7 @@ Steps:
 3. **Create app** → *Deploy a public app from GitHub*: repository `SrihaasaK/fewshot-inspector`, branch `main`,
    main file path `app/streamlit_app.py` (Cloud then picks up `app/requirements.txt`).
 4. *Advanced settings* → Python **3.12** (3.10–3.15 are pinned too) → **Deploy**; the first build installs CPU torch.
-5. Open the app URL and click **▶ Try an example**; add the URL to the *Live link* line at the top of this README.
+5. Open the app URL and click **▶ Try an example** (this repo's deployment is linked at the top of the README).
 
 Troubleshooting: if the app shows *“`torch` is not installed (Python X.Y …)”*, open **Manage app → logs**. After a
 dependency change, use **Manage app → Reboot app** to reinstall; to change the Python version you must delete

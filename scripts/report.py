@@ -380,6 +380,16 @@ def seed_section(results: Path, bench: pd.DataFrame, paper: pd.DataFrame) -> str
             + "\n\n![capsule references](docs/reference_sheet_capsule.png)")
 
 
+def _hits(caption: str) -> str:
+    m = re.search(r"(\d+) / (\d+)", caption)
+    return f"{m.group(1)} / {m.group(2)}" if m else "—"
+
+
+DEMO_NOTE = ("Demo hit rates below come from **6 example images** at the demo resolution and illustrate the app; "
+             "they are **not benchmark accuracy** — the benchmark tables above use the full MVTec AD test sets at "
+             "672 px.")
+
+
 def cloud_section(results: Path) -> str:
     """Streamlit-Community-Cloud-like check: fresh venv from app/requirements.txt, CPU, 2 threads."""
     sw = json.loads((results / "app_cloud_sweep.json").read_text())
@@ -396,7 +406,8 @@ def cloud_section(results: Path) -> str:
              f"synthetic calibration images, `synth_escape5`. Cold model load (incl. ~90 MB download): "
              f"{m['model_load_s']:.1f} s. Rule fixed before measuring: {sw['rule']} ⇒ default "
              f"**{sw['chosen_resolution']} px**.",
-             "| resolution | example | setup s (fit + calibration) | ms / test image | verdicts correct | |\n"
+             DEMO_NOTE,
+             "| resolution | example | setup s (fit + calibration) | ms / test image | demo hits (of 6) | |\n"
              "|---:|---|---:|---:|---:|---|\n" + rows]
     e2e_path = results / "app_cloud_e2e.json"
     if e2e_path.exists():
@@ -404,12 +415,12 @@ def cloud_section(results: Path) -> str:
         em = e["meta"]
         lines = "\n".join(
             f"| {c['category']} | **{c['seconds_click_to_verdicts']:.1f}** | {c['n_pass']} PASS / {c['n_fail']} FAIL | "
-            f"{c['correct_caption'].replace('Verdicts matching ground truth: ', '').rstrip('.')} | "
+            f"{_hits(c['correct_caption'])} | "
             f"{c.get('n_heatmap_images', '')} |" for c in e["clicks"])
         parts.append(f"End to end in the real app (Streamlit `AppTest`, commit `{short_sha(em['git_sha'])}`, "
                      f"{'cold' if em.get('cold_cache') else 'warm'} model cache — the first click includes the "
                      "weight download), seconds from clicking **▶ Try an example** to all verdicts rendered:\n\n"
-                     "| example (click order) | click → verdicts (s) | verdicts | matching ground truth | heatmap panels |\n"
+                     "| example (click order) | click → verdicts (s) | verdicts | demo hits | heatmap panels |\n"
                      "|---|---:|---|---:|---:|\n" + lines)
     live_path = results / "app_cloud_live.json"
     if live_path.exists():
@@ -430,7 +441,7 @@ def cloud_section(results: Path) -> str:
             f"`results/app_cloud_live.json`). Host: {dg['cpu_model']}, Python {dg['python']}, "
             f"`os.cpu_count()` = {dg['os.cpu_count()']}; cgroup `cpu.max` was `{dg['cgroup cpu.max at first load']}` at "
             f"first load and `{dg['cgroup cpu.max later']}` later, i.e. the quota is applied after start-up.\n\n"
-            "| commit | threads | resolution | example | click → verdicts (s) | setup (s) | ms / test image | correct | note |\n"
+            "| commit | threads | resolution | example | click → verdicts (s) | setup (s) | ms / test image | demo hits | note |\n"
             "|---|---:|---:|---|---:|---:|---:|---:|---|\n" + "\n".join(rows_l))
     return "\n\n".join(parts)
 

@@ -233,6 +233,10 @@ st.title("🔍 fewshot-inspector")
 st.markdown("Training-free visual inspection: learn *normal* from **1–16 photos of good parts**, choose a pass/fail "
             "cutoff from **synthetic defects only**, then score new images with a defect heatmap. "
             "Frozen DINOv2 ViT-S/14 + nearest-neighbour patch matching (AnomalyDINO, WACV 2025).")
+st.info(f"**Demo vs benchmark.** This demo runs at **{resolution} px**"
+        + (" on a shared CPU to stay fast" if on_cpu else "")
+        + ". The benchmark numbers in the README use **672 px** (the AnomalyDINO paper's setting; latency is reported "
+          "at 448 and 672 px). PASS/FAIL hits on the 6 example images are an illustration, **not benchmark accuracy**.")
 
 # ----------------------------------------------------------------------------- examples
 examples = load_examples()
@@ -244,7 +248,8 @@ if examples:
         st.session_state["example"] = {"category": ex_cat, "refs": ex["refs"], "tests": ex["tests"],
                                        "source": "bundled"}
         st.session_state["autobuild"] = True
-    c3.caption(f"No upload needed: 4 good {ex_cat}s as references, then 2 good + 4 defective test images. "
+    c3.caption(f"No upload needed: 4 good {ex_cat}s as references, then 2 good + 4 defective test images "
+               f"(demo at {resolution} px — not benchmark accuracy). "
                "Images: MVTec AD subset, © MVTec Software GmbH, CC BY-NC-SA 4.0 (`app/samples/LICENSE.md`).")
 
 if DATA_ROOT.exists():
@@ -359,7 +364,8 @@ if sess is not None:
         c2.image(thumb(overlay(img, r.heatmap, 0.45, 0.0, vmax)), caption="heatmap overlay")
         c3.image(thumb(heat_rgb(r.heatmap, vmax)), caption=f"raw heatmap (0 – {vmax:.3f})")
     if tests and all(t[2] is not None for t in tests):
-        st.caption(f"Verdicts matching ground truth: {correct} / {len(tests)}.")
+        st.caption(f"Verdicts matching ground truth: {correct} / {len(tests)} — a {len(tests)}-image demo at "
+                   f"{resolution} px, not benchmark accuracy (benchmark: full MVTec AD test sets at 672 px, README).")
 
     if sess.calibration.examples:
         with st.expander("Synthetic defects used for calibration (scored by the fitted inspector)"):
