@@ -77,10 +77,19 @@ class Session:
     signature: tuple
 
 
-@st.cache_resource(show_spinner=False)
-def detected_threads() -> int:
-    """Default CPU threads: FEWSHOT_CPU_THREADS, else the cgroup-quota-aware CPU count."""
-    return max(1, int(os.environ.get("FEWSHOT_CPU_THREADS", available_cpus())))
+def default_threads() -> int:
+    """Default CPU threads: FEWSHOT_CPU_THREADS, else the cgroup CPU quota read NOW, capped at 2 on Community Cloud.
+
+    Not cached on purpose: Community Cloud starts the container without a quota (`cpu.max = max`, 16 visible
+    CPUs) and applies its ~1.75-core quota later; a value cached at start-up left torch running 16 threads on
+    <2 cores, which made 'Try an example' take minutes. Apps on Community Cloud run from /mount/src/<repo>.
+    """
+    if os.environ.get("FEWSHOT_CPU_THREADS"):
+        return max(1, int(os.environ["FEWSHOT_CPU_THREADS"]))
+    n = available_cpus()
+    if Path(__file__).resolve().as_posix().startswith("/mount/src/"):
+        n = min(n, 2)
+    return max(1, n)
 
 
 def cpu_diagnostics() -> dict[str, object]:
@@ -205,9 +214,9 @@ with st.sidebar:
     threads = None
     if on_cpu:
         with st.expander("Advanced: CPU threads & diagnostics"):
-            default_threads = detected_threads()
-            threads = st.select_slider("CPU threads", options=sorted({1, 2, 4, 8, 16, default_threads}),
-                                       value=default_threads,
+            n_default = default_threads()
+            threads = st.select_slider("CPU threads", options=sorted({1, 2, 4, 8, 16, n_default}),
+                                       value=n_default,
                                        help="More threads than the host's CPU quota slows torch down (oversubscription)")
             st.json(cpu_diagnostics(), expanded=False)
         torch.set_num_threads(threads)
