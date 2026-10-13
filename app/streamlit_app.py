@@ -78,6 +78,7 @@ class Session:
     fit_s: float
     n_refs: int
     signature: tuple
+    example_category: str | None  # set only when the references came from an example set (not uploads)
 
 
 def default_threads() -> int:
@@ -301,7 +302,9 @@ if refs and (build_clicked or st.session_state.pop("autobuild", False)):
                              if cached else f"Inspector ready in {timing['total_s']:.1f} s (incl. model load: {wall:.1f} s)")
                       + f" — memory bank {len(insp.bank or []):,} patches, masking {'on' if insp.use_masking else 'off'}",
                       state="complete")
-    st.session_state["session"] = Session(insp, cal, cutoffs, timing["total_s"], timing["fit_s"], len(refs), signature)
+    ex_cat = example["category"] if (example and not ref_files) else None
+    st.session_state["session"] = Session(insp, cal, cutoffs, timing["total_s"], timing["fit_s"], len(refs), signature,
+                                          ex_cat)
 
 sess: Session | None = st.session_state.get("session")
 if sess is not None:
@@ -328,8 +331,11 @@ if sess is not None:
                                   accept_multiple_files=True, key="tests")
     tests: list[tuple[np.ndarray, str, str | None]] = [(img, name, None) for img, name in read_uploads(test_files)] \
         if test_files else []
-    if not tests and example:
+    # example tests belong to the example's references only — never score them against an uploaded part
+    if not tests and example and sess.example_category == example["category"]:
         tests = [(load_image(p), Path(p).name, truth) for p, truth in example["tests"]]
+    if not tests:
+        st.info("Upload one or more test images of your part to inspect them.")
     correct = 0
     for img, name, truth in tests:
         r = score_cached(sess.inspector, img)
