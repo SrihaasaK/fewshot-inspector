@@ -55,9 +55,12 @@ POLICIES = {
     "synth_youden": "Synthetic Youden (balance FRR vs escapes on synthetic defects)",
     "good_only": "Good-only p99 × 1.10 (needs no defects at all)",
 }
-#: CPU defaults chosen by scripts/app_cloud_check.py (largest resolution whose 4-reference setup stays
-#: ≤ 10 s on 2 CPU threads, i.e. ≥ 3× headroom under the 30 s Community Cloud target).
-CPU_DEFAULT_RESOLUTION = 448
+#: Streamlit Community Cloud runs apps from /mount/src/<repo>; its sustained CPU budget is ~1.75 EPYC cores.
+ON_COMMUNITY_CLOUD = Path(__file__).resolve().as_posix().startswith("/mount/src/")
+#: CPU default resolution: largest whose 4-reference setup stays under 30 s on 2 threads ON THE TARGET HOST.
+#: Local CPUs: 448 (results/app_cloud_sweep.json). Community Cloud: 224, measured on the live app
+#: (results/app_cloud_live.json; 336 and 448 exceeded 30 s there).
+CPU_DEFAULT_RESOLUTION = 224 if ON_COMMUNITY_CLOUD else 448
 GPU_DEFAULT_RESOLUTION = 448
 CPU_DEFAULT_CAL = 32
 GPU_DEFAULT_CAL = 64
@@ -87,7 +90,7 @@ def default_threads() -> int:
     if os.environ.get("FEWSHOT_CPU_THREADS"):
         return max(1, int(os.environ["FEWSHOT_CPU_THREADS"]))
     n = available_cpus()
-    if Path(__file__).resolve().as_posix().startswith("/mount/src/"):
+    if ON_COMMUNITY_CLOUD:
         n = min(n, 2)
     return max(1, n)
 

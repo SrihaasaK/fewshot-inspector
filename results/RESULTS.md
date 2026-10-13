@@ -202,3 +202,15 @@ End to end in the real app (Streamlit `AppTest`, commit `77f19a88de67`, cold mod
 |---|---:|---|---:|---:|
 | bottle | **11.7** | 1 PASS / 5 FAIL | 5 / 6 | 12 |
 | screw | **8.4** | 5 PASS / 1 FAIL | 3 / 6 | 12 |
+
+**Live Community Cloud** (the deployed app; values transcribed verbatim from the app's own readouts — `results/app_cloud_live.json`). Host: AMD EPYC 7B13, Python 3.14.8, `os.cpu_count()` = 16; cgroup `cpu.max` was `max 100000` at first load and `175000 100000` later, i.e. the quota is applied after start-up.
+
+| commit | threads | resolution | example | click → verdicts (s) | setup (s) | ms / test image | correct | note |
+|---|---:|---:|---|---:|---:|---:|---:|---|
+| `2bfcd31` | 16 | 448 | bottle | 69.2 | 55.5 | 1715–2247 | 5 / 6 | thread count cached at start-up while cpu.max was 'max' |
+| `4e4fed3` | 16 | 448 | bottle | — | — | — | — | still 'Building inspector' after > 6 min under the 1.75-core quota; stopped |
+| `ca7dffb` | 2 | 448 | bottle | 93.1 | 80.0 | 841–908 | 5 / 6 |  |
+| `ca7dffb` | 2 | 336 | bottle | 37.3 | 32.8 | 362–466 | 6 / 6 |  |
+| `ca7dffb` | 2 | 336 | screw | 40.2 | 34.9 | 375–642 | 2 / 6 |  |
+| `ca7dffb` | 2 | 224 | bottle | 16.2 | 13.3 | 149–204 | 5 / 6 |  |
+| `ca7dffb` | 2 | 224 | screw | 16.7 | 13.9 | 175–215 | 4 / 6 |  |

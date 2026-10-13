@@ -411,6 +411,27 @@ def cloud_section(results: Path) -> str:
                      "weight download), seconds from clicking **▶ Try an example** to all verdicts rendered:\n\n"
                      "| example (click order) | click → verdicts (s) | verdicts | matching ground truth | heatmap panels |\n"
                      "|---|---:|---|---:|---:|\n" + lines)
+    live_path = results / "app_cloud_live.json"
+    if live_path.exists():
+        live = json.loads(live_path.read_text())
+        lm = live["meta"]
+        rows_l = []
+        for r in live["runs"]:
+            if "action" in r:
+                continue
+            c2v = "—" if r.get("click_to_verdicts_s") is None else f"{r['click_to_verdicts_s']:.1f}"
+            setup = "—" if r.get("setup_s") is None else f"{r['setup_s']:.1f}"
+            img = (f"{min(r['per_image_ms'])}–{max(r['per_image_ms'])}" if r.get("per_image_ms") else "—")
+            rows_l.append(f"| `{r['commit']}` | {r['threads']} | {r['resolution']} | {r['category']} | {c2v} | {setup} | "
+                          f"{img} | {r.get('correct', '—')} | {r.get('note', '')} |")
+        dg = lm["diagnostics"]
+        parts.append(
+            "**Live Community Cloud** (the deployed app; values transcribed verbatim from the app's own readouts — "
+            f"`results/app_cloud_live.json`). Host: {dg['cpu_model']}, Python {dg['python']}, "
+            f"`os.cpu_count()` = {dg['os.cpu_count()']}; cgroup `cpu.max` was `{dg['cgroup cpu.max at first load']}` at "
+            f"first load and `{dg['cgroup cpu.max later']}` later, i.e. the quota is applied after start-up.\n\n"
+            "| commit | threads | resolution | example | click → verdicts (s) | setup (s) | ms / test image | correct | note |\n"
+            "|---|---:|---:|---|---:|---:|---:|---:|---|\n" + "\n".join(rows_l))
     return "\n\n".join(parts)
 
 

@@ -1,0 +1,34 @@
+{
+  "meta": {
+    "url": "https://fewshot-inspector-euqddmkr9a9xrpves9s7ru.streamlit.app/",
+    "measured_utc_window": ["2026-10-12T23:45:00Z", "2026-10-13T00:28:30Z"],
+    "method": "Manual browser session (Chrome DevTools) on the live Streamlit Community Cloud app. Values are copied verbatim from the app's own readouts: the 'Inspector ready in ... s' status (setup), the per-image 'Latency ... ms' captions and the 'Verdicts matching ground truth' caption; click_to_verdicts_s is wall time measured in the page from the click to the last verdict rendered. Each run builds a new inspector (settings differ or cache cold); the model was already loaded in the process.",
+    "diagnostics": {
+      "python": "3.14.8",
+      "platform": "Linux-6.12.94+-x86_64-with-glibc2.41",
+      "cpu_model": "AMD EPYC 7B13",
+      "os.cpu_count()": 16,
+      "cgroup cpu.max at first load": "max 100000",
+      "cgroup cpu.max later": "175000 100000"
+    }
+  },
+  "runs": [
+    {"commit": "2bfcd31", "threads": 16, "resolution": 448, "n_cal": 32, "category": "bottle", "click_to_verdicts_s": 69.2, "setup_s": 55.5,
+     "per_image_ms": [2247, 1848, 2043, 1908, 1715, 2245], "correct": "5 / 6",
+     "note": "thread count cached at start-up while cpu.max was 'max'"},
+    {"commit": "2bfcd31", "threads": 16, "resolution": 448, "n_cal": 32, "category": "bottle", "action": "switch cutoff policy to synth_youden (no rebuild)",
+     "seconds": 20.8, "correct": "3 / 6", "note": "every rerun re-scored all six images"},
+    {"commit": "4e4fed3", "threads": 16, "resolution": 448, "n_cal": 32, "category": "bottle", "click_to_verdicts_s": null, "setup_s": null,
+     "note": "still 'Building inspector' after > 6 min under the 1.75-core quota; stopped"},
+    {"commit": "ca7dffb", "threads": 2, "resolution": 448, "n_cal": 32, "category": "bottle", "click_to_verdicts_s": 93.1, "setup_s": 80.0,
+     "per_image_ms": [908, 889, 841, 891, 857, 863], "correct": "5 / 6"},
+    {"commit": "ca7dffb", "threads": 2, "resolution": 336, "n_cal": 32, "category": "bottle", "click_to_verdicts_s": 37.3, "setup_s": 32.8,
+     "per_image_ms": [362, 448, 414, 464, 466, 413], "correct": "6 / 6"},
+    {"commit": "ca7dffb", "threads": 2, "resolution": 336, "n_cal": 32, "category": "screw", "click_to_verdicts_s": 40.2, "setup_s": 34.9,
+     "per_image_ms": [375, 405, 440, 486, 642, 412], "correct": "2 / 6"},
+    {"commit": "ca7dffb", "threads": 2, "resolution": 224, "n_cal": 32, "category": "bottle", "click_to_verdicts_s": 16.2, "setup_s": 13.3,
+     "per_image_ms": [149, 204, 201, 185, 179, 185], "correct": "5 / 6"},
+    {"commit": "ca7dffb", "threads": 2, "resolution": 224, "n_cal": 32, "category": "screw", "click_to_verdicts_s": 16.7, "setup_s": 13.9,
+     "per_image_ms": [175, 215, 202, 210, 198, 200], "correct": "4 / 6"}
+  ]
+}

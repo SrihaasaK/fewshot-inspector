@@ -261,6 +261,18 @@ End to end in the real app (Streamlit `AppTest`, commit `77f19a88de67`, cold mod
 |---|---:|---|---:|---:|
 | bottle | **11.7** | 1 PASS / 5 FAIL | 5 / 6 | 12 |
 | screw | **8.4** | 5 PASS / 1 FAIL | 3 / 6 | 12 |
+
+**Live Community Cloud** (the deployed app; values transcribed verbatim from the app's own readouts — `results/app_cloud_live.json`). Host: AMD EPYC 7B13, Python 3.14.8, `os.cpu_count()` = 16; cgroup `cpu.max` was `max 100000` at first load and `175000 100000` later, i.e. the quota is applied after start-up.
+
+| commit | threads | resolution | example | click → verdicts (s) | setup (s) | ms / test image | correct | note |
+|---|---:|---:|---|---:|---:|---:|---:|---|
+| `2bfcd31` | 16 | 448 | bottle | 69.2 | 55.5 | 1715–2247 | 5 / 6 | thread count cached at start-up while cpu.max was 'max' |
+| `4e4fed3` | 16 | 448 | bottle | — | — | — | — | still 'Building inspector' after > 6 min under the 1.75-core quota; stopped |
+| `ca7dffb` | 2 | 448 | bottle | 93.1 | 80.0 | 841–908 | 5 / 6 |  |
+| `ca7dffb` | 2 | 336 | bottle | 37.3 | 32.8 | 362–466 | 6 / 6 |  |
+| `ca7dffb` | 2 | 336 | screw | 40.2 | 34.9 | 375–642 | 2 / 6 |  |
+| `ca7dffb` | 2 | 224 | bottle | 16.2 | 13.3 | 149–204 | 5 / 6 |  |
+| `ca7dffb` | 2 | 224 | screw | 16.7 | 13.9 | 175–215 | 4 / 6 |  |
 <!-- RESULTS:END -->
 
 ## Paper comparison
@@ -423,9 +435,15 @@ sleep after 12 h without visitors). The app is prepared for it:
   instead of silently skipping torch. It deliberately has **no `--extra-index-url`**: uv (Cloud's installer) does honour that line,
   but its first-index rule then refuses to fall back to PyPI on platforms without `+cpu` wheels. CI resolves the
   file with uv for Linux x86_64 and fails if CUDA packages appear.
-- **CPU.** torch's thread pool is sized to the container's cgroup CPU quota (not the host's core count); the
-  default resolution was chosen by a rule fixed in advance (largest resolution whose setup stays ≤ 10 s on 2
-  threads, i.e. ≥ 3× headroom under 30 s for slower cloud cores); uploads are downscaled to ≤ 1024 px.
+- **CPU.** Community Cloud shows 16 CPUs and starts **without** a CPU quota, then applies a ≈ 1.75-core quota
+  later (see the live diagnostics above). The app therefore re-reads the cgroup quota on every run and caps
+  torch at 2 threads on Community Cloud — 16 threads under that quota stalled the build for minutes. The
+  local 2-thread emulation turned out ~10× faster than the live host, so the Cloud default resolution is
+  chosen from **live** measurements: **224 px** (the largest with setup under 30 s there; 336 and 448 were
+  over). Local CPUs keep 448. Uploads are downscaled to ≤ 1024 px.
+- **Caching.** The bundled examples are built once per settings and shared across visitors, and test-image
+  scores are cached, so only the first click after a restart pays the build; changing the cutoff policy or
+  threshold does not re-run the model.
 - **Model.** DINOv2 is loaded once per container via `st.cache_resource` with a spinner on first load. After the
   12-hour sleep the next visitor waits for the container to boot and the ~90 MB weights to download again.
 
